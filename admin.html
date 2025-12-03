@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المسؤول | System Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* --- CSS SYSTEM CORE (كما في نسختك الأصلية) --- */
+        :root {
+            --admin-bg: #0f172a;
+            --panel-bg: #1e293b;
+            --accent: #0ea5e9;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--admin-bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 280px;
+            background: #111827;
+            border-left: 1px solid #374151;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .system-logo {
+            font-size: 1.5rem;
+            color: var(--accent);
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #374151;
+            padding-bottom: 15px;
+        }
+
+        .menu-item {
+            padding: 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: 0.3s;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--accent);
+            border-right: 4px solid var(--accent);
+        }
+
+        /* Main Content */
+        .main-panel {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background-color: var(--dark-bg); /* استخدام المتغير العام */
+        }
+
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-box {
+            background: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-box h3 { margin: 0; font-size: 0.9rem; color: #94a3b8; }
+        .stat-box .number { font-size: 2.5rem; font-weight: bold; margin-top: 10px; color: var(--text); }
+
+        /* Form Styling */
+        .form-container {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid #374151;
+            margin-bottom: 40px;
+        }
+
+        .form-title { margin-bottom: 25px; color: var(--accent); border-bottom: 1px solid #374151; padding-bottom: 10px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: white;
+            border-radius: 6px;
+            font-family: 'Cairo';
+            box-sizing: border-box;
+        }
+        
+        .ltr-input { direction: ltr; text-align: left; }
+
+        .btn-add {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 20px;
+            width: 100%;
+            transition: 0.3s;
+        }
+        .btn-add:hover { background: #16a34a; }
+
+        /* Table Styling */
+        .table-container {
+            background: var(--panel-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid #374151;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #0f172a; }
+        
+        th, td {
+            padding: 15px;
+            text-align: right;
+            border-bottom: 1px solid #334155;
+        }
+
+        th { color: var(--accent); font-weight: bold; }
+        td { color: #e2e8f0; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        /* أزرار الإجراءات (حذف + رصد) */
+        .btn-action {
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+            margin-left: 5px;
+            transition: 0.3s;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+        .btn-delete:hover { background: var(--danger); color: white; }
+
+        /* زر الرصد الجديد */
+        .btn-grade {
+            background: rgba(14, 165, 233, 0.1);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        .btn-grade:hover { background: var(--accent); color: white; }
+
+        /* --- تنسيقات نافذة الرصد (الجديدة) --- */
+        .grading-table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+        .grading-table th { background: #111827; padding: 10px; color: #94a3b8; font-size: 0.9rem; }
+        .grading-table td { border-bottom: 1px solid #334155; padding: 10px; }
+        
+        .grade-input {
+            width: 80px;
+            padding: 5px;
+            text-align: center;
+            border-radius: 4px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: white;
+            font-weight: bold;
+        }
+        .grade-input:focus { border-color: var(--accent); outline: none; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; padding: 10px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .main-panel { padding: 15px; }
+            .table-container { overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="system-logo">&lt; ADMIN CORE /&gt;</div>
+        <div class="menu-item active">إدارة الطلاب</div>
+        <div class="menu-item">التقارير الأكاديمية</div>
+        <div class="menu-item">الإعدادات</div>
+        <div class="menu-item" style="margin-top: auto; color: var(--danger);" onclick="resetSystem()">⚠️ تهيئة النظام</div>
+    </aside>
+
+    <main class="main-panel">
+        
+        <div class="header-stats">
+            <div class="stat-box">
+                <h3>إجمالي الطلاب المسجلين</h3>
+                <div class="number" id="total-students">0</div>
+            </div>
+            <div class="stat-box">
+                <h3>حالة قاعدة البيانات</h3>
+                <div class="number" style="color: var(--success); font-size: 1.5rem;">Connected ●</div>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <h2 class="form-title">تسجيل طالب جديد</h2>
+            <form id="addStudentForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>اسم الطالب (رباعي)</label>
+                        <input type="text" id="newName" placeholder="الاسم بالكامل..." required>
+                    </div>
+                    <div class="input-group">
+                        <label>الرقم الجامعي (ID)</label>
+                        <input type="number" id="newId" class="ltr-input" placeholder="مثال: 202501" required>
+                    </div>
+                    <div class="input-group">
+                        <label>البريد الجامعي</label>
+                        <input type="email" id="newEmail" class="ltr-input" placeholder="student@fcai.edu.eg" required>
+                    </div>
+                    <div class="input-group">
+                        <label>كلمة المرور</label>
+                        <input type="text" id="newPassword" class="ltr-input" placeholder="كلمة السر" required>
+                    </div>
+                    <div class="input-group">
+                        <label>المستوى الدراسي</label>
+                        <select id="newLevel">
+                            <option value="المستوى الأول">المستوى الأول</option>
+                            <option value="المستوى الثاني">المستوى الثاني</option>
+                            <option value="المستوى الثالث">المستوى الثالث</option>
+                            <option value="المستوى الرابع">المستوى الرابع</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>القسم</label>
+                        <select id="newDept">
+                            <option value="General">عام (General)</option>
+                            <option value="CS">علوم حاسب (CS)</option>
+                            <option value="IS">نظم معلومات (IS)</option>
+                            <option value="AI">ذكاء اصطناعي (AI)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>المعدل التراكمي (GPA)</label>
+                        <input type="number" id="newGpa" class="ltr-input" step="0.01" placeholder="0.00" value="0.00">
+                    </div>
+                </div>
+                <button type="submit" class="btn-add">إضافة الطالب للنظام</button>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>الاسم</th>
+                        <th>المستوى</th>
+                        <th>المواد المسجلة</th> <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="gradingModal" class="custom-modal" style="display: none;">
+        <div class="modal-content" style="width: 500px; max-width: 95%;">
+            <h3 id="gradingTitle" style="color: var(--accent);">رصد الدرجات</h3>
+            <p id="studentNameDisplay" style="color: #94a3b8; font-size: 0.9rem;">...</p>
+            
+            <div id="gradingContent">
+                </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="modal-btn" onclick="saveGradesForStudent()">حفظ الدرجات</button>
+                <button class="modal-btn" style="background: #334155;" onclick="closeGradingModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="alertModal" class="custom-modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">تنبيه</h3>
+            <p id="modalMessage">...</p>
+            <button class="modal-btn" onclick="closeModal()">حسناً</button>
+        </div>
+    </div>
+
+    <script>
+        // --- System Logic ---
+
+        const DB_KEY = 'fcai_students_db';
+
+        // تعريف أسماء المواد للعرض فقط
+        const courseNames = {
+            'CS101': 'مقدمة حاسب', 'MATH1': 'رياضيات 1', 'IS201': 'نظم معلومات',
+            'LOGIC': 'تفكير منطقي', 'ENG1': 'لغة إنجليزية', 'PHYS': 'فيزياء'
+        };
+
+        let currentGradingStudentId = null;
+
+        // 1. التهيئة (بدون بيانات وهمية كما طلبت)
+        function initSystem() {
+            if (!localStorage.getItem(DB_KEY)) {
+                localStorage.setItem(DB_KEY, JSON.stringify([])); 
+            }
+            renderTable();
+        }
+
+        // 2. جلب البيانات
+        function getData() {
+            return JSON.parse(localStorage.getItem(DB_KEY)) || [];
+        }
+
+        // 3. حفظ البيانات
+        function saveData(data) {
+            localStorage.setItem(DB_KEY, JSON.stringify(data));
+            renderTable();
+        }
+
+        // 4. عرض الجدول (تم تحديثه لإضافة زر الرصد وعمود المواد)
+        function renderTable() {
+            const students = getData();
+            const tbody = document.getElementById('studentsTableBody');
+            const counter = document.getElementById('total-students');
+            
+            tbody.innerHTML = ''; 
+            counter.innerText = students.length;
+
+            if (students.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="empty-state">لا يوجد طلاب مسجلين في النظام حتى الآن. قم بإضافة طالب جديد.</td></tr>`;
+                return;
+            }
+
+            students.forEach((student) => {
+                const coursesCount = student.registeredCourses ? student.registeredCourses.length : 0;
+                // عرض حالة التسجيل
+                let coursesStatus = coursesCount > 0 
+                    ? `<span style="color: var(--success); font-weight:bold;">${coursesCount} مواد</span>` 
+                    : `<span style="color: var(--danger); font-size:0.9rem;">لم يسجل</span>`;
+
+                const row = `
+                    <tr>
+                        <td class="ltr-input">${student.id}</td>
+                        <td>${student.fullName}</td>
+                        <td><span style="background:#334155; padding:2px 8px; border-radius:4px;">${student.level}</span></td>
+                        <td>${coursesStatus}</td>
+                        <td>
+                            <button class="btn-action btn-grade" onclick="openGrading('${student.id}')">📝 رصد</button>
+                            <button class="btn-action btn-delete" onclick="deleteStudent('${student.id}')">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // 5. منطق فتح نافذة الرصد (جديد)
+        function openGrading(id) {
+            const students = getData();
+            const student = students.find(s => s.id === id);
+            
+            // حماية: هل الطالب سجل مواد أصلاً؟
+            if (!student.registeredCourses || student.registeredCourses.length === 0) {
+                showModal('تنبيه', 'هذا الطالب لم يقم بتسجيل أي مواد دراسية حتى الآن!', false);
+                return;
+            }
+
+            currentGradingStudentId = id;
+            document.getElementById('studentNameDisplay').innerText = `الطالب: ${student.fullName}`;
+            
+            const container = document.getElementById('gradingContent');
+            let html = `<table class="grading-table"><thead><tr><th>المادة</th><th>الدرجة (من 100)</th></tr></thead><tbody>`;
+            
+            const existingGrades = student.grades || {}; // جلب الدرجات القديمة لو موجودة
+
+            student.registeredCourses.forEach(courseCode => {
+                const courseName = courseNames[courseCode] || courseCode;
+                const oldGrade = existingGrades[courseCode] || '';
+                
+                html += `
+                    <tr>
+                        <td>${courseName} <span style="font-size:0.8rem; color:#94a3b8;">(${courseCode})</span></td>
+                        <td><input type="number" class="grade-input" id="grade_${courseCode}" value="${oldGrade}" min="0" max="100" placeholder="-"></td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+
+            document.getElementById('gradingModal').style.display = 'flex';
+        }
+
+        // 6. حفظ الدرجات (جديد)
+        function saveGradesForStudent() {
+            const students = getData();
+            const index = students.findIndex(s => s.id === currentGradingStudentId);
+            
+            if (index !== -1) {
+                const student = students[index];
+                const gradesObj = {};
+                let isValid = true;
+
+                student.registeredCourses.forEach(code => {
+                    const val = document.getElementById(`grade_${code}`).value;
+                    if (val !== '') {
+                        if(val < 0 || val > 100) isValid = false;
+                        gradesObj[code] = parseInt(val);
+                    }
+                });
+
+                if(!isValid) {
+                    alert("الدرجة يجب أن تكون بين 0 و 100");
+                    return;
+                }
+
+                student.grades = gradesObj; // حفظ الدرجات في بيانات الطالب
+                
+                students[index] = student;
+                saveData(students);
+
+                closeGradingModal();
+                showModal('تم الحفظ', 'تم رصد الدرجات بنجاح!', true);
+            }
+        }
+
+        function closeGradingModal() { document.getElementById('gradingModal').style.display = 'none'; }
+
+        // 7. إضافة طالب (نفس كودك السابق)
+        document.getElementById('addStudentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const newStudent = {
+                id: document.getElementById('newId').value,
+                fullName: document.getElementById('newName').value,
+                email: document.getElementById('newEmail').value,
+                password: document.getElementById('newPassword').value,
+                level: document.getElementById('newLevel').value,
+                dept: document.getElementById('newDept').value,
+                gpa: document.getElementById('newGpa').value,
+                registeredCourses: [], // مصفوفة فارغة للمواد
+                grades: {} // كائن فارغ للدرجات
+            };
+
+            const currentData = getData();
+            
+            if(currentData.some(s => s.id === newStudent.id)) {
+                showModal('خطأ', 'هذا الرقم الجامعي مسجل بالفعل!', false);
+                return;
+            }
+
+            currentData.push(newStudent);
+            saveData(currentData);
+            
+            showModal('تم بنجاح', 'تمت إضافة الطالب لقاعدة البيانات.', true);
+            this.reset(); 
+        });
+
+        // 8. حذف طالب
+        function deleteStudent(id) {
+            if(confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) {
+                let data = getData();
+                data = data.filter(s => s.id !== id);
+                saveData(data);
+                showModal('تم الحذف', 'تم حذف بيانات الطالب من النظام.', true);
+            }
+        }
+
+        // 9. تهيئة النظام
+        function resetSystem() {
+            if(confirm('تحذير شديد: سيتم مسح جميع بيانات الطلاب! هل أنت متأكد؟')) {
+                localStorage.removeItem(DB_KEY);
+                location.reload();
+            }
+        }
+
+        // دوال النافذة المنبثقة
+        function showModal(title, message, isSuccess) {
+            const modal = document.getElementById('alertModal');
+            const titleElem = document.getElementById('modalTitle');
+            const msgElem = document.getElementById('modalMessage');
+            
+            titleElem.innerText = title;
+            msgElem.innerText = message;
+            
+            if (isSuccess) {
+                titleElem.style.color = '#22c55e';
+            } else {
+                titleElem.style.color = '#ef4444';
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('alertModal').style.display = 'none';
+        }
+
+        // تشغيل النظام
+        initSystem();
+    </script>
+</body>
+</html>
