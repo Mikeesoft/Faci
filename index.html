@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كلية الحاسبات والذكاء الاصطناعي | FCAI</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="logo">&lt;FCAI /&gt;</div>
+            
+            <nav>
+                <div class="menu-toggle" id="mobile-menu">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+
+                <ul class="nav-list">
+                    <li><a href="index.html">الرئيسية</a></li>
+                    <li><a href="#">الأقسام</a></li>
+                    <li><a href="#">المحاضرات</a></li>
+                    <li><a href="#" onclick="showAlert()">تواصل معنا</a></li>
+                    <li class="mobile-only"><a href="login.html">بوابة الطالب</a></li>
+                </ul>
+            </nav>
+
+            <a href="login.html" class="login-btn desktop-only">بوابة الطالب</a>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>مستقبلك يبدأ بـ <span class="highlight">الكود</span></h1>
+            <p>كلية الحاسبات والذكاء الاصطناعي - بوابتك لعالم البرمجة، الأمن السيبراني، وعلوم البيانات.</p>
+            
+            <div class="terminal-box">
+                <span id="typing-text"></span><span class="cursor">|</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="departments">
+        <h2 class="section-title">مسارات التخصص</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>CS | علوم الحاسب</h3>
+                <p>خوارزميات، برمجة، وهندسة برمجيات.</p>
+            </div>
+            <div class="card">
+                <h3>IS | نظم المعلومات</h3>
+                <p>قواعد بيانات، تحليل نظم، وإدارة مشاريع.</p>
+            </div>
+            <div class="card">
+                <h3>AI | الذكاء الاصطناعي</h3>
+                <p>تعلم الآلة، روبوتات، ومعالجة بيانات.</p>
+            </div>
+            <div class="card">
+                <h3>IT | الشبكات</h3>
+                <p>أمن سيبراني، سحابية، وإدارة خوادم.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>جميع الحقوق محفوظة &copy; 2025 | كلية الحاسبات والذكاء الاصطناعي</p>
+    </footer>
+
+    <script src="script.js"></script>
+
+</body>
+</html>

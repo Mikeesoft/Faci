@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم | FCAI Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* إضافة بسيطة لإخفاء input الملفات */
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="user-profile">
+                <div class="avatar-wrapper" onclick="triggerUpload()">
+                    <img id="profileImage" class="user-avatar" src="" style="display: none;">
+                    <div id="avatarLetter" class="user-avatar">?</div>
+                    <div class="avatar-overlay">📷</div>
+                </div>
+                
+                <input type="file" id="fileInput" accept="image/*" onchange="handleImageUpload(event)">
+
+                <h3 id="display-name" style="color: white; font-size: 1rem;">...</h3>
+                <span id="display-id" style="color: var(--primary-color); font-size: 0.9rem;">---</span>
+            </div>
+            
+            <ul>
+                <li><a onclick="showSection('profile')" id="btn-profile" class="active">📊 الملف الرئيسي</a></li>
+                <li><a onclick="showSection('registration')" id="btn-registration">📝 تسجيل المواد</a></li>
+                <li><a onclick="showSection('results')" id="btn-results">🏆 النتائج الدراسية</a></li>
+                <li><a onclick="showSection('settings')" id="btn-settings">⚙️ الإعدادات</a></li>
+                <li style="margin-top: 30px;"><a onclick="logout()" style="color: #ef4444;">🚪 تسجيل خروج</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            
+            <section id="profile" class="dashboard-section active-section">
+                <h1 style="margin-bottom: 20px;">أهلاً بك، <span id="welcome-name" style="color: var(--primary-color);">طالب</span></h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>المرحلة الدراسية</h3>
+                        <div class="value" id="display-level">...</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>المعدل التراكمي (GPA)</h3>
+                        <div class="value" id="display-gpa" style="color: var(--accent);">0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>المواد المسجلة</h3>
+                        <div class="value" id="display-registered-count">0</div>
+                    </div>
+                </div>
+
+                <div class="card" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e;">
+                    <h3 style="color: #22c55e;">✅ حالة الحساب</h3>
+                    <p>الحساب نشط. يمكنك الآن تحديث صورتك الشخصية وتغيير كلمة المرور من الإعدادات.</p>
+                </div>
+            </section>
+
+            <section id="registration" class="dashboard-section">
+                <h2 style="margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px;">تسجيل المواد (الفصل الأول)</h2>
+                <div class="course-list" id="coursesContainer"></div>
+                <div class="reg-footer">
+                    <div class="total-hours">إجمالي الساعات: <span id="total-credits">0</span> / 18</div>
+                    <button class="btn-save" onclick="saveRegistration()">حفظ التسجيل</button>
+                </div>
+            </section>
+
+            <section id="results" class="dashboard-section">
+                <h2 style="margin-bottom: 20px;">النتائج الدراسية</h2>
+                <div id="resultsContent"></div>
+            </section>
+
+                        <section id="settings" class="dashboard-section">
+                <h2 style="margin-bottom: 20px;">الإعدادات العامة</h2>
+                
+                <div id="settings-main-view">
+                    
+                    <div class="settings-menu-item" onclick="openPasswordSettings()">
+                        <div class="settings-icon-wrapper">
+                            <div class="settings-icon">🔒</div>
+                            <div class="settings-text">
+                                <h4>الأمان وكلمة المرور</h4>
+                                <p>تغيير كلمة المرور وتأمين الحساب</p>
+                            </div>
+                        </div>
+                        <div class="arrow-icon">❮</div>
+                    </div>
+
+                    <div class="settings-menu-item" onclick="alert('سيتوفر قريباً')">
+                        <div class="settings-icon-wrapper">
+                            <div class="settings-icon">🔔</div>
+                            <div class="settings-text">
+                                <h4>الإشعارات</h4>
+                                <p>تخصيص تنبيهات النظام</p>
+                            </div>
+                        </div>
+                        <div class="arrow-icon">❮</div>
+                    </div>
+
+                </div>
+
+                <div id="password-form-view" style="display: none;">
+                    
+                    <button class="btn-back-settings" onclick="backToSettingsMenu()">
+                        ❯ رجوع للقائمة
+                    </button>
+
+                    <div class="settings-form">
+                        <h3>تغيير كلمة المرور</h3>
+                        <form onsubmit="changePassword(event)">
+                            <div class="form-group">
+                                <label>كلمة المرور الحالية</label>
+                                <input type="password" id="currentPass" placeholder="أدخل كلمة المرور الحالية" required>
+                            </div>
+                            <div class="form-group">
+                                <label>كلمة المرور الجديدة</label>
+                                <input type="password" id="newPass" placeholder="أدخل كلمة المرور الجديدة" required>
+                            </div>
+                            <div class="form-group">
+                                <label>تأكيد كلمة المرور الجديدة</label>
+                                <input type="password" id="confirmPass" placeholder="أعد كتابة كلمة المرور" required>
+                            </div>
+                            <button type="submit" class="btn-update">حفظ التغييرات</button>
+                        </form>
+                    </div>
+                </div>
+
+            </section>
+
+                    </form>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="alertModal" class="custom-modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">تنبيه</h3>
+            <p id="modalMessage">...</p>
+            <button class="modal-btn" onclick="closeModal()">حسناً</button>
+        </div>
+    </div>
+
+    <script>
+        const DB_KEY = 'fcai_students_db';
+        let currentUser = null;
+
+        const availableCourses = [
+            { code: 'CS101', name: 'مقدمة في علوم الحاسب', credits: 3 },
+            { code: 'CS102', name: 'مبادئ برمجة', credits: 3 },
+            { code: 'BS101', name: 'رياضيات - 1', credits: 3 },
+            { code: 'BS102', name: 'مقدمة في فيزياء', credits: 3 },
+            { code: 'HM101', name: 'لغة إنجليزية (1)', credits: 2 },
+            { code: 'HM102', name: 'الإبداع وريادة الأعمال', credits: 2 }
+        ];
+
+        window.onload = function() {
+            loadUserData();
+            renderCourses();
+            renderResults();
+        };
+
+        function loadUserData() {
+            const email = JSON.parse(localStorage.getItem('currentUser'))?.email;
+            const allStudents = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            currentUser = allStudents.find(s => s.email === email);
+            if (!currentUser) { window.location.href = 'login.html'; return; }
+
+            calculateRealGPA();
+
+            // عرض البيانات النصية
+            document.getElementById('display-name').innerText = currentUser.fullName;
+            document.getElementById('welcome-name').innerText = currentUser.fullName.split(" ")[0];
+            document.getElementById('display-id').innerText = "ID: " + currentUser.id;
+            document.getElementById('display-level').innerText = currentUser.level;
+            document.getElementById('display-gpa').innerText = currentUser.gpa || "0.00";
+
+            // --- عرض الصورة الشخصية ---
+            const imgElem = document.getElementById('profileImage');
+            const letterElem = document.getElementById('avatarLetter');
+
+            if (currentUser.profileImage) {
+                // لو فيه صورة، اعرضها واخفِ الحرف
+                imgElem.src = currentUser.profileImage;
+                imgElem.style.display = 'block';
+                letterElem.style.display = 'none';
+            } else {
+                // لو مفيش صورة، اعرض الحرف واخفِ الصورة
+                imgElem.style.display = 'none';
+                letterElem.style.display = 'flex';
+                letterElem.innerText = currentUser.fullName.charAt(0);
+            }
+            
+            const count = currentUser.registeredCourses ? currentUser.registeredCourses.length : 0;
+            document.getElementById('display-registered-count').innerText = count + " مواد";
+        }
+
+        // --- دوال رفع الصورة ---
+        function triggerUpload() {
+            document.getElementById('fileInput').click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // تحويل الصورة لنص (Base64) عشان نحفظها في الذاكرة
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Image = e.target.result;
+                
+                // تحديث المستخدم الحالي
+                currentUser.profileImage = base64Image;
+                
+                // تحديث قاعدة البيانات
+                updateDatabase(currentUser);
+                
+                // إعادة تحميل البيانات لعرض الصورة فوراً
+                loadUserData();
+                showModal('تم', 'تم تحديث الصورة الشخصية بنجاح!', true);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- دوال تغيير كلمة المرور ---
+        function changePassword(e) {
+            e.preventDefault();
+            const currentPass = document.getElementById('currentPass').value;
+            const newPass = document.getElementById('newPass').value;
+            const confirmPass = document.getElementById('confirmPass').value;
+
+            if (currentPass !== currentUser.password) {
+                showModal('خطأ', 'كلمة المرور الحالية غير صحيحة!', false);
+                return;
+            }
+            if (newPass.length < 4) {
+                showModal('خطأ', 'كلمة المرور الجديدة ضعيفة جداً.', false);
+                return;
+            }
+            if (newPass !== confirmPass) {
+                showModal('خطأ', 'كلمة المرور الجديدة غير متطابقة.', false);
+                return;
+            }
+
+            // تحديث الباسورد
+            currentUser.password = newPass;
+            updateDatabase(currentUser);
+            
+            // تفريغ الفورم
+            e.target.reset();
+            showModal('تم بنجاح', 'تم تغيير كلمة المرور. يرجى تذكرها جيداً.', true);
+        }
+
+        // دالة مساعدة لتحديث قاعدة البيانات
+        function updateDatabase(updatedUser) {
+            let allStudents = JSON.parse(localStorage.getItem(DB_KEY)) || [];
+            const index = allStudents.findIndex(s => s.id === updatedUser.id);
+            if (index !== -1) {
+                allStudents[index] = updatedUser;
+                localStorage.setItem(DB_KEY, JSON.stringify(allStudents));
+                localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            }
+        }
+
+        // --- باقي الدوال (GPA, Results, etc.) ---
+        function calculateRealGPA() {
+            if (!currentUser.grades || Object.keys(currentUser.grades).length === 0) return;
+            let totalPoints = 0, totalHours = 0;
+            for (const [courseCode, score] of Object.entries(currentUser.grades)) {
+                const course = availableCourses.find(c => c.code === courseCode);
+                if (course) {
+                    let points = 0;
+                    if (score >= 90) points = 4.0;
+                    else if (score >= 85) points = 3.7;
+                    else if (score >= 80) points = 3.3;
+                    else if (score >= 75) points = 3.0;
+                    else if (score >= 70) points = 2.7;
+                    else if (score >= 65) points = 2.3;
+                    else if (score >= 60) points = 2.0;
+                    else if (score >= 50) points = 1.0;
+                    totalPoints += points * course.credits;
+                    totalHours += course.credits;
+                }
+            }
+            if (totalHours > 0) currentUser.gpa = (totalPoints / totalHours).toFixed(2);
+        }
+
+        function renderResults() {
+            const container = document.getElementById('resultsContent');
+            const grades = currentUser.grades || {};
+            if (Object.keys(grades).length === 0) {
+                container.innerHTML = `<div class="card" style="text-align: center; padding: 40px;"><h1 style="font-size: 3rem;">⏳</h1><h3>لم يتم رصد درجات بعد</h3></div>`;
+                return;
+            }
+            let html = `<table class="results-table"><thead><tr><th>المادة</th><th>الساعات</th><th>الدرجة</th><th>التقدير</th></tr></thead><tbody>`;
+            for (const [code, score] of Object.entries(grades)) {
+                const course = availableCourses.find(c => c.code === code);
+                const courseName = course ? course.name : code;
+                const credits = course ? course.credits : '-';
+                let gradeLetter = 'F', gradeClass = 'grade-F';
+                if (score >= 90) { gradeLetter = 'A+'; gradeClass = 'grade-A'; }
+                else if (score >= 85) { gradeLetter = 'A'; gradeClass = 'grade-A'; }
+                else if (score >= 75) { gradeLetter = 'B'; gradeClass = 'grade-B'; }
+                else if (score >= 65) { gradeLetter = 'C'; gradeClass = 'grade-C'; }
+                else if (score >= 50) { gradeLetter = 'D'; gradeClass = 'grade-D'; }
+                html += `<tr><td>${courseName} <br><span style="font-size:0.8rem; color:#94a3b8;">${code}</span></td><td>${credits}</td><td style="font-weight:bold; color:white;">${score}</td><td><span class="grade-badge ${gradeClass}">${gradeLetter}</span></td></tr>`;
+            }
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(sec => sec.classList.remove('active-section'));
+            document.querySelectorAll('.sidebar a').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active-section');
+            document.getElementById('btn-' + sectionId).classList.add('active');
+        }
+
+        function renderCourses() {
+            const container = document.getElementById('coursesContainer');
+            container.innerHTML = '';
+            const myCourses = currentUser.registeredCourses || [];
+            availableCourses.forEach(course => {
+                const isChecked = myCourses.includes(course.code) ? 'checked' : '';
+                const html = `
+                    <div class="course-item">
+                        <div class="course-info">
+                            <h4>${course.name}</h4>
+                            <span>${course.code} <span class="credit-badge">${course.credits} ساعات</span></span>
+                        </div>
+                        <input type="checkbox" class="course-checkbox" value="${course.code}" data-credits="${course.credits}" onchange="calculateTotal()" ${isChecked}>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('.course-checkbox:checked').forEach(box => total += parseInt(box.getAttribute('data-credits')));
+            const display = document.getElementById('total-credits');
+            display.innerText = total;
+            display.style.color = total > 18 ? '#ef4444' : '#22c55e';
+        }
+
+        function saveRegistration() {
+            let total = parseInt(document.getElementById('total-credits').innerText);
+            if (total === 0) { showModal('تنبيه', 'يجب اختيار مادة واحدة على الأقل!', false); return; }
+            if (total > 18) { showModal('خطأ', 'لا يمكن تجاوز 18 ساعة!', false); return; }
+            const selectedCodes = [];
+            document.querySelectorAll('.course-checkbox:checked').forEach(box => selectedCodes.push(box.value));
+            
+            // استخدام دالة التحديث الموحدة
+            currentUser.registeredCourses = selectedCodes;
+            updateDatabase(currentUser);
+            
+            loadUserData();
+            showModal('تم الحفظ', 'تم تسجيل المواد بنجاح!', true);
+        }
+
+        function logout() { localStorage.removeItem('currentUser'); window.location.href = 'login.html'; }
+        function showModal(t, m, s) { document.getElementById('modalTitle').innerText = t; document.getElementById('modalMessage').innerText = m; document.getElementById('modalTitle').style.color = s ? '#22c55e' : '#ef4444'; document.getElementById('alertModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('alertModal').style.display = 'none'; }
+        
+                // --- دوال التنقل داخل الإعدادات ---
+        function openPasswordSettings() {
+            // إخفاء القائمة وإظهار الفورم
+            document.getElementById('settings-main-view').style.display = 'none';
+            document.getElementById('password-form-view').style.display = 'block';
+            
+            // إضافة تأثير حركي بسيط
+            document.getElementById('password-form-view').style.animation = 'fadeIn 0.3s ease';
+        }
+
+        function backToSettingsMenu() {
+            // العكس: إخفاء الفورم وإظهار القائمة
+            document.getElementById('password-form-view').style.display = 'none';
+            document.getElementById('settings-main-view').style.display = 'block';
+        }
+
+    </script>
+</body>
+</html>
