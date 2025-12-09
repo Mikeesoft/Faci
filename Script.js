@@ -1,147 +1,97 @@
-// -----------------------------------------------------------
-// إعدادات الاتصال بمشروعك (تم التحديث)
-// -----------------------------------------------------------
-const firebaseConfig = {
-  apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
-  authDomain: "myeduplatform-fe0eb.firebaseapp.com",
-  projectId: "myeduplatform-fe0eb",
-  storageBucket: "myeduplatform-fe0eb.firebasestorage.app",
-  messagingSenderId: "773570577444",
-  appId: "1:773570577444:web:c94cc1c8267ecbadd004b1",
-  measurementId: "G-6TFV2M7J1G"
-};
+// بما أن الملفات في نفس المجلد، نستخدم الاسم مباشرة
+const API_URL = "api.php";
 
-// تهيئة Firebase
-try {
-    firebase.initializeApp(firebaseConfig);
-    console.log("تم الاتصال بسيرفرات جوجل بنجاح ✅");
-} catch (e) {
-    console.error("خطأ في الاتصال", e);
-}
+// 1. تشغيل الدالة عند فتح الموقع
+document.addEventListener('DOMContentLoaded', loadCourses);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// === إدارة العناصر في الصفحة ===
-const authScreen = document.getElementById('auth-screen');
-const dashboardScreen = document.getElementById('dashboard-screen');
-const alertBox = document.getElementById('alert-box');
-
-// === 1. نظام الأمان والمراقبة (Security & State) ===
-// هذه الدالة تراقب المستخدم: هل هو مسجل دخول أم لا؟
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        // المستخدم موجود ومسجل دخول
-        showDashboard(user);
-    } else {
-        // لا يوجد مستخدم
-        showAuth();
-    }
-});
-
-function showAuth() {
-    authScreen.classList.remove('hidden');
-    dashboardScreen.classList.add('hidden');
-}
-
-function showDashboard(user) {
-    authScreen.classList.add('hidden');
-    dashboardScreen.classList.remove('hidden');
-    document.getElementById('user-email').innerText = user.email;
-    loadCourses(); // استدعاء الكورسات
-}
-
-// === 2. وظائف التسجيل والدخول (Auth Logic) ===
-
-function showAlert(msg) {
-    alertBox.innerText = msg;
-    alertBox.classList.remove('hidden');
-    setTimeout(() => alertBox.classList.add('hidden'), 3000);
-}
-
-function getCreds() {
-    const email = document.getElementById('email').value;
-    const pass = document.getElementById('password').value;
-    return { email, pass };
-}
-
-function register() {
-    const { email, pass } = getCreds();
-    if (pass.length < 6) {
-        showAlert("⚠️ كلمة المرور يجب أن تكون 6 أحرف على الأقل");
-        return;
-    }
-    
-    auth.createUserWithEmailAndPassword(email, pass)
-        .then((cred) => {
-            // حفظ بيانات إضافية للمستخدم في قاعدة البيانات
-            return db.collection('users').doc(cred.user.uid).set({
-                email: email,
-                role: 'student', // الصلاحية الافتراضية
-                joinedAt: new Date()
-            });
-        })
-        .then(() => showAlert("✅ تم إنشاء الحساب بنجاح!"))
-        .catch((err) => showAlert("❌ خطأ: " + err.message));
-}
-
-function login() {
-    const { email, pass } = getCreds();
-    auth.signInWithEmailAndPassword(email, pass)
-        .catch((err) => showAlert("❌ البريد أو كلمة المرور خطأ"));
-}
-
-function logout() {
-    auth.signOut();
-}
-
-// === 3. نظام الكورسات (Data Handling) ===
-
-function loadCourses() {
+// 2. دالة جلب الكورسات من قاعدة البيانات
+async function loadCourses() {
     const container = document.getElementById('courses-grid');
-    container.innerHTML = '<p style="text-align:center">جاري جلب الكورسات من السيرفر...</p>';
+    
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
 
-    // هنا نقرأ البيانات من قاعدة بيانات Firestore
-    db.collection("courses").get().then((querySnapshot) => {
-        let htmlContent = "";
-        
-        // إذا كانت قاعدة البيانات فارغة، نعرض كورسات تجريبية (Demo)
-        if (querySnapshot.empty) {
-            htmlContent = `
+        // تنظيف المكان
+        container.innerHTML = "";
+
+        if (data.length === 0) {
+            container.innerHTML = "<p>لا توجد دروس حالياً.</p>";
+            return;
+        }
+
+        // عرض الكورسات
+        data.forEach(course => {
+            const html = `
                 <div class="course-card">
-                    <h3>🐍 كورس بايثون الشامل</h3>
-                    <p>تعلم الذكاء الاصطناعي من الصفر حتى الاحتراف.</p>
-                    <button class="btn-primary" onclick="alert('يجب إضافة محتوى حقيقي')">ابدأ التعلم</button>
-                </div>
-                <div class="course-card">
-                    <h3>🌐 تطوير الويب الكامل</h3>
-                    <p>HTML, CSS, JS وكيفية بناء المواقع.</p>
-                    <button class="btn-primary">ابدأ التعلم</button>
+                    <h3>${course.title}</h3>
+                    <p>${course.description}</p>
+                    <button class="btn-primary" onclick="openVideo('${course.title}', '${course.video_url}')">مشاهدة الدرس</button>
                 </div>
             `;
-        } else {
-            // عرض الكورسات الحقيقية من الداتابيز
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                htmlContent += `
-                    <div class="course-card">
-                        <h3>${sanitize(data.title)}</h3>
-                        <p>${sanitize(data.description)}</p>
-                        <button class="btn-primary">مشاهدة</button>
-                    </div>
-                `;
-            });
-        }
-        container.innerHTML = htmlContent;
-    }).catch(err => {
-        container.innerHTML = "<p>حدث خطأ في تحميل الكورسات</p>";
-        console.error(err);
-    });
+            container.innerHTML += html;
+        });
+
+    } catch (error) {
+        console.error("Error:", error);
+        container.innerHTML = "<p style='color:red'>حدث خطأ في الاتصال بقاعدة البيانات</p>";
+    }
 }
 
-// دالة حماية بسيطة لمنع حقن الأكواد (Basic XSS Protection)
-function sanitize(str) {
-    const temp = document.createElement('div');
-    temp.textContent = str;
-    return temp.innerHTML;
+// 3. دالة إضافة كورس جديد
+async function addCourse() {
+    const title = document.getElementById('c-title').value;
+    const desc = document.getElementById('c-desc').value;
+    const video = document.getElementById('c-video').value;
+
+    if(!title || !video) {
+        alert("يرجى كتابة العنوان ورابط الفيديو");
+        return;
+    }
+
+    const newCourse = {
+        title: title,
+        description: desc,
+        video_url: video
+    };
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newCourse)
+        });
+        
+        const result = await response.json();
+        
+        if(result.message) {
+            alert("✅ تم نشر الدرس بنجاح!");
+            loadCourses(); // إعادة تحميل القائمة
+            // تفريغ الحقول
+            document.getElementById('c-title').value = "";
+            document.getElementById('c-desc').value = "";
+            document.getElementById('c-video').value = "";
+        } else {
+            alert("❌ خطأ: " + result.error);
+        }
+
+    } catch (error) {
+        alert("خطأ في الاتصال");
+        console.error(error);
+    }
+}
+
+// 4. التحكم في نافذة الفيديو
+const modal = document.getElementById('video-modal');
+const frame = document.getElementById('course-frame');
+
+function openVideo(title, url) {
+    document.getElementById('modal-title').innerText = title;
+    frame.src = url;
+    modal.classList.remove('hidden');
+}
+
+function closeVideo() {
+    modal.classList.add('hidden');
+    frame.src = "";
 }

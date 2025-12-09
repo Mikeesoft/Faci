@@ -3,45 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أكاديمية المستقبل | Future Academy</title>
+    <title>منصتي التعليمية</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
-    <div id="alert-box" class="alert hidden"></div>
-
-    <section id="auth-screen" class="container">
-        <div class="auth-card">
-            <h1>مرحباً بك في المنصة</h1>
-            <p>سجل دخولك للوصول إلى الكورسات</p>
-            
-            <input type="email" id="email" placeholder="البريد الإلكتروني" required>
-            <input type="password" id="password" placeholder="كلمة المرور" required>
-            
-            <div class="buttons">
-                <button onclick="login()" class="btn-primary">دخول</button>
-                <button onclick="register()" class="btn-secondary">إنشاء حساب جديد</button>
-            </div>
-            <p class="security-note">🔒 بياناتك مشفرة ومحمية بتقنيات Google Secure Auth</p>
+    <header>
+        <div class="container header-content">
+            <h1>🎓 أكاديمية المستقبل</h1>
         </div>
-    </section>
+    </header>
 
-    <section id="dashboard-screen" class="container hidden">
-        <header>
-            <h2>📚 الكورسات المتاحة</h2>
-            <div class="user-info">
-                <span id="user-email"></span>
-                <button onclick="logout()" class="btn-danger">خروج</button>
-            </div>
-        </header>
+    <div class="container">
+        <section class="add-course-box">
+            <h3>➕ إضافة درس جديد</h3>
+            <input type="text" id="c-title" placeholder="عنوان الدرس">
+            <input type="text" id="c-desc" placeholder="وصف قصير">
+            <input type="text" id="c-video" placeholder="رابط الفيديو (YouTube Embed URL)">
+            <button onclick="addCourse()" class="btn-primary">نشر الدرس</button>
+        </section>
 
+        <hr>
+
+        <h2>📚 الدروس المتاحة</h2>
         <div id="courses-grid" class="grid">
-            <p>جاري تحميل البيانات...</p>
+            <p style="text-align:center">جاري الاتصال بقاعدة البيانات...</p>
         </div>
-    </section>
+    </div>
+
+    <div id="video-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeVideo()">&times;</span>
+            <h3 id="modal-title"></h3>
+            <div class="video-container">
+                <iframe id="course-frame" src="" frameborder="0" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
