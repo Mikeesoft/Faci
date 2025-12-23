@@ -3,428 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جامعتي - منظم المواد</title>
+    <title>بوابتي الجامعية</title>
     
-    <!-- تحميل React و ReactDOM -->
+    <!-- React Core -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- تحميل Babel لتحويل كود React -->
+    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- تحميل Tailwind CSS للتصميم -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- إعدادات Tailwind -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* إخفاء شريط التمرير ولكن السماح بالتمرير */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+        body { font-family: 'Tajawal', sans-serif; background-color: #f3f4f6; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #4f46e5;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 20px;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-100">
-
-    <!-- مكان ظهور التطبيق -->
+<body>
     <div id="root"></div>
 
-    <!-- كود التطبيق -->
+    <!-- Firebase Setup (Module) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
+            authDomain: "myeduplatform-fe0eb.firebaseapp.com",
+            projectId: "myeduplatform-fe0eb",
+            storageBucket: "myeduplatform-fe0eb.firebasestorage.app",
+            messagingSenderId: "773570577444",
+            appId: "1:773570577444:web:c94cc1c8267ecbadd004b1",
+            measurementId: "G-6TFV2M7J1G"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Expose to window for React
+        window.fb = {
+            auth, db, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, orderBy
+        };
+        
+        // Signal React to render
+        window.dispatchEvent(new Event('firebase-ready'));
+    </script>
+
+    <!-- React Application -->
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
+        
+        // --- Components ---
 
-        // --- أيقونات SVG (بدلاً من المكتبة لتخفيف الحجم) ---
-        const Icons = {
-            Home: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-            Calendar: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>,
-            BookOpen: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
-            CheckSquare: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
-            Plus: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>,
-            Trash2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
-            Clock: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-            MapPin: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
-            User: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
-            Circle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>,
-            CheckCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        };
-
-        // --- المكونات الأساسية ---
-        const Card = ({ children, className = "" }) => (
-            <div className={`bg-white rounded-xl shadow-sm border border-slate-100 p-4 ${className}`}>
-                {children}
+        // 1. Loading Spinner
+        const Loading = () => (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p className="text-gray-500 text-sm">جاري الاتصال بالقاعدة...</p>
+                </div>
             </div>
         );
 
-        const Button = ({ children, onClick, variant = "primary", className = "", ...props }) => {
-            const baseStyle = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2";
-            const variants = {
-                primary: "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95",
-                secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200 active:scale-95",
-                danger: "bg-red-50 text-red-600 hover:bg-red-100",
-                ghost: "text-slate-500 hover:bg-slate-50"
-            };
-            return (
-                <button onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
-                    {children}
-                </button>
-            );
-        };
+        // 2. Auth Screen (Login/Register)
+        const AuthScreen = ({ onLogin }) => {
+            const [isRegister, setIsRegister] = useState(false);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
 
-        const Input = ({ label, ...props }) => (
-            <div className="mb-3">
-                {label && <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>}
-                <input 
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                    {...props}
-                />
-            </div>
-        );
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setError('');
+                setLoading(true);
+                const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
 
-        // --- التطبيق الرئيسي ---
-        function App() {
-            const days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء'];
-
-            const [activeTab, setActiveTab] = useState('home');
-            const [courses, setCourses] = useState(() => {
-                const saved = localStorage.getItem('uni_courses_v2');
-                return saved ? JSON.parse(saved) : [];
-            });
-            const [tasks, setTasks] = useState(() => {
-                const saved = localStorage.getItem('uni_tasks_v2');
-                return saved ? JSON.parse(saved) : [];
-            });
-            
-            useEffect(() => {
-                localStorage.setItem('uni_courses_v2', JSON.stringify(courses));
-                localStorage.setItem('uni_tasks_v2', JSON.stringify(tasks));
-            }, [courses, tasks]);
-
-            const [showAddCourse, setShowAddCourse] = useState(false);
-            const [showAddTask, setShowAddTask] = useState(false);
-            const [newCourse, setNewCourse] = useState({ name: '', instructor: '', room: '', day: 'السبت', time: '' });
-            const [newTask, setNewTask] = useState({ title: '', courseId: '', date: '', completed: false });
-
-            // الدوال
-            const addCourse = () => {
-                if (!newCourse.name) return;
-                setCourses([...courses, { ...newCourse, id: Date.now() }]);
-                setNewCourse({ name: '', instructor: '', room: '', day: 'السبت', time: '' });
-                setShowAddCourse(false);
-            };
-
-            const deleteCourse = (id) => {
-                if(confirm('حذف المادة؟')) {
-                    setCourses(courses.filter(c => c.id !== id));
-                    setTasks(tasks.filter(t => t.courseId !== id.toString()));
+                try {
+                    if (isRegister) {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                    // Auth state listener in App component will handle the redirection
+                } catch (err) {
+                    let msg = "حدث خطأ ما";
+                    if(err.code === 'auth/invalid-email') msg = "البريد الإلكتروني غير صحيح";
+                    if(err.code === 'auth/wrong-password') msg = "كلمة المرور خاطئة";
+                    if(err.code === 'auth/user-not-found') msg = "المستخدم غير موجود";
+                    if(err.code === 'auth/email-already-in-use') msg = "البريد مسجل مسبقاً";
+                    if(err.code === 'auth/weak-password') msg = "كلمة المرور ضعيفة (6 أحرف على الأقل)";
+                    setError(msg);
+                } finally {
+                    setLoading(false);
                 }
             };
 
-            const addTask = () => {
-                if (!newTask.title) return;
-                setTasks([...tasks, { ...newTask, id: Date.now(), completed: false }]);
-                setNewTask({ title: '', courseId: '', date: '', completed: false });
-                setShowAddTask(false);
-            };
-
-            const toggleTask = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-            const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
-            const getCourseName = (id) => {
-                const course = courses.find(c => c.id.toString() === id.toString());
-                return course ? course.name : 'عام';
-            };
-
-            const getTodayName = () => {
-                const dayIndex = new Date().getDay();
-                const map = { 6: 'السبت', 0: 'الأحد', 1: 'الاثنين', 2: 'الثلاثاء' };
-                return map[dayIndex] || null;
-            };
-
-            const currentDayName = getTodayName();
-
-            // --- الشاشات ---
-            const HomeView = () => {
-                const pendingTasks = tasks.filter(t => !t.completed).length;
-                const todayCourses = currentDayName 
-                    ? courses.filter(c => c.day === currentDayName).sort((a, b) => a.time.localeCompare(b.time))
-                    : [];
-
-                return (
-                    <div className="space-y-6 pb-24">
-                        <header className="flex justify-between items-center">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-800">مرحباً 👋</h1>
-                                <p className="text-slate-500 text-sm">{courses.length} مواد مسجلة</p>
-                            </div>
-                            <div className="bg-indigo-50 p-2 rounded-full">
-                                <Icons.User className="text-indigo-600 w-6 h-6" />
-                            </div>
-                        </header>
-
-                        <div className="bg-indigo-600 rounded-2xl p-5 text-white shadow-lg">
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <p className="text-indigo-200 text-sm mb-1">المهام المتبقية</p>
-                                    <h2 className="text-4xl font-bold">{pendingTasks}</h2>
-                                </div>
-                                <div className="bg-indigo-500/50 p-2 rounded-lg">
-                                    <Icons.CheckSquare className="w-6 h-6 text-white" />
-                                </div>
-                            </div>
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+                        <div className="bg-indigo-600 p-8 text-center">
+                            <i data-lucide="graduation-cap" className="w-12 h-12 text-white mx-auto mb-2"></i>
+                            <h1 className="text-2xl font-bold text-white">بوابتي الجامعية</h1>
+                            <p className="text-indigo-200 text-sm">نظم حياتك الدراسية بذكاء</p>
                         </div>
+                        <div className="p-8">
+                            <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">
+                                {isRegister ? 'إنشاء حساب طالب جديد' : 'تسجيل الدخول'}
+                            </h2>
+                            
+                            {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">{error}</div>}
 
-                        <div>
-                            <div className="flex justify-between items-center mb-3">
-                                <h2 className="font-bold text-lg text-slate-800">
-                                    {currentDayName ? `جدول اليوم (${currentDayName})` : 'لا توجد محاضرات اليوم'}
-                                </h2>
-                                <button onClick={() => setActiveTab('schedule')} className="text-indigo-600 text-sm font-medium">عرض الجدول</button>
-                            </div>
-                            <div className="space-y-3">
-                                {currentDayName && todayCourses.length > 0 ? (
-                                    todayCourses.map(course => (
-                                        <div key={course.id} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-                                            <div className="bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-bold text-lg shrink-0">
-                                                {course.name.charAt(0)}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-bold text-slate-800">{course.name}</h3>
-                                                <div className="flex items-center gap-3 mt-1">
-                                                    <span className="text-xs text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded">
-                                                        <Icons.Clock className="w-3 h-3" /> {course.time}
-                                                    </span>
-                                                    <span className="text-xs text-slate-500 flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded">
-                                                        <Icons.MapPin className="w-3 h-3" /> {course.room}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 text-sm">
-                                        لا توجد محاضرات الآن
-                                    </div>
-                                )}
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">البريد الجامعي / الإلكتروني</label>
+                                    <input type="email" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                                           value={email} onChange={e => setEmail(e.target.value)} placeholder="student@university.edu" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
+                                    <input type="password" required className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                                           value={password} onChange={e => setPassword(e.target.value)} placeholder="******" />
+                                </div>
+                                <button disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition disabled:opacity-50 flex justify-center">
+                                    {loading ? <span className="loader"></span> : (isRegister ? 'تسجيل جديد' : 'دخول')}
+                                </button>
+                            </form>
+
+                            <div className="mt-6 text-center">
+                                <button onClick={() => setIsRegister(!isRegister)} className="text-indigo-600 text-sm hover:underline">
+                                    {isRegister ? 'لديك حساب بالفعل؟ سجل دخول' : 'ليس لديك حساب؟ أنشئ حساباً الآن'}
+                                </button>
                             </div>
                         </div>
                     </div>
-                );
+                </div>
+            );
+        };
+
+        // 3. Main Dashboard Layout
+        const Dashboard = ({ user }) => {
+            const [activeTab, setActiveTab] = useState('home');
+            const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+            const handleLogout = () => {
+                const { auth, signOut } = window.fb;
+                signOut(auth);
             };
 
-            const CoursesView = () => (
-                <div className="pb-24 space-y-4">
-                    <header className="flex justify-between items-center mb-6">
-                        <h1 className="text-2xl font-bold text-slate-800">المواد الدراسية</h1>
-                        <Button onClick={() => setShowAddCourse(true)} variant="primary" className="!px-3 !py-2 rounded-full">
-                            <Icons.Plus className="w-5 h-5" />
-                        </Button>
-                    </header>
+            const NavItem = ({ id, icon, label }) => (
+                <button 
+                    onClick={() => { setActiveTab(id); setShowMobileMenu(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === id ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-gray-500 hover:bg-gray-50'}`}
+                >
+                    <i data-lucide={icon} className="w-5 h-5"></i>
+                    <span>{label}</span>
+                </button>
+            );
 
-                    {courses.length === 0 ? (
-                        <div className="text-center py-20 px-6">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Icons.BookOpen className="w-8 h-8 text-indigo-300" />
-                            </div>
-                            <p className="text-slate-400 mb-6 text-sm">أضف المواد لتبدأ</p>
-                            <Button onClick={() => setShowAddCourse(true)}>إضافة مادة</Button>
+            // Re-render icons when tab changes
+            useEffect(() => {
+                if(window.lucide) window.lucide.createIcons();
+            }, [activeTab, showMobileMenu]);
+
+            return (
+                <div className="min-h-screen bg-gray-50 flex">
+                    {/* Sidebar (Desktop) */}
+                    <aside className="hidden md:flex flex-col w-64 bg-white border-l border-gray-200 p-4">
+                        <div className="flex items-center gap-2 px-4 py-4 mb-6">
+                            <div className="bg-indigo-600 p-2 rounded-lg"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div>
+                            <span className="font-bold text-xl text-gray-800">جامعتي</span>
                         </div>
-                    ) : (
-                        <div className="grid gap-4">
+                        <nav className="flex-1 space-y-2">
+                            <NavItem id="home" icon="layout-dashboard" label="الرئيسية" />
+                            <NavItem id="courses" icon="book-open" label="المواد الدراسية" />
+                            <NavItem id="tasks" icon="check-square" label="المهام والواجبات" />
+                        </nav>
+                        <div className="border-t border-gray-100 pt-4 mt-4">
+                            <div className="px-4 py-2 mb-2">
+                                <p className="text-xs text-gray-400">مسجل كـ</p>
+                                <p className="text-sm font-bold text-gray-700 truncate" dir="ltr">{user.email}</p>
+                            </div>
+                            <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg text-sm font-medium">
+                                <i data-lucide="log-out" className="w-4 h-4"></i> تسجيل خروج
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                        {/* Mobile Header */}
+                        <header className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center z-20">
+                            <div className="flex items-center gap-2">
+                                <i data-lucide="graduation-cap" className="text-indigo-600 w-6 h-6"></i>
+                                <span className="font-bold text-lg">جامعتي</span>
+                            </div>
+                            <button onClick={() => setShowMobileMenu(!showMobileMenu)} className="p-2 bg-gray-100 rounded-lg">
+                                <i data-lucide={showMobileMenu ? "x" : "menu"} className="w-6 h-6 text-gray-600"></i>
+                            </button>
+                        </header>
+
+                        {/* Mobile Menu Overlay */}
+                        {showMobileMenu && (
+                            <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-xl z-10 p-4 space-y-2 animate-in slide-in-from-top-5">
+                                <NavItem id="home" icon="layout-dashboard" label="الرئيسية" />
+                                <NavItem id="courses" icon="book-open" label="المواد الدراسية" />
+                                <NavItem id="tasks" icon="check-square" label="المهام والواجبات" />
+                                <div className="border-t pt-2 mt-2">
+                                    <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-3 text-red-500 text-sm">
+                                        <i data-lucide="log-out" className="w-4 h-4"></i> تسجيل خروج
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                            {activeTab === 'home' && <HomeView user={user} setTab={setActiveTab} />}
+                            {activeTab === 'courses' && <CoursesView user={user} />}
+                            {activeTab === 'tasks' && <TasksView user={user} />}
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Feature Components ---
+
+        // 4. Courses Component (Real DB)
+        const CoursesView = ({ user }) => {
+            const [courses, setCourses] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [newCourse, setNewCourse] = useState({ name: '', doctor: '', room: '', day: 'الأحد', time: '' });
+            const [isAdding, setIsAdding] = useState(false);
+
+            useEffect(() => {
+                const { db, collection, query, where, onSnapshot, orderBy } = window.fb;
+                // Query: Select * from courses where uid == user.uid
+                const q = query(
+                    collection(db, "courses"), 
+                    where("uid", "==", user.uid)
+                );
+                
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setCourses(data);
+                    setLoading(false);
+                    if(window.lucide) setTimeout(() => window.lucide.createIcons(), 100);
+                });
+                return () => unsubscribe();
+            }, [user]);
+
+            const handleAdd = async (e) => {
+                e.preventDefault();
+                setIsAdding(true);
+                const { db, collection, addDoc } = window.fb;
+                try {
+                    await addDoc(collection(db, "courses"), {
+                        uid: user.uid,
+                        ...newCourse,
+                        createdAt: new Date()
+                    });
+                    setNewCourse({ name: '', doctor: '', room: '', day: 'الأحد', time: '' });
+                } catch (error) {
+                    console.error("Error adding course: ", error);
+                } finally {
+                    setIsAdding(false);
+                }
+            };
+
+            const handleDelete = async (id) => {
+                if(!confirm("حذف المادة؟")) return;
+                const { db, doc, deleteDoc } = window.fb;
+                await deleteDoc(doc(db, "courses", id));
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-gray-800">المواد الدراسية</h2>
+                        <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-bold">{courses.length} مواد</span>
+                    </div>
+
+                    {/* Add Form */}
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                        <h3 className="font-bold text-gray-700 mb-3 text-sm">إضافة مادة جديدة</h3>
+                        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                            <input className="md:col-span-2 px-3 py-2 border rounded-lg" placeholder="اسم المادة (فيزياء 101)" required value={newCourse.name} onChange={e => setNewCourse({...newCourse, name: e.target.value})} />
+                            <input className="md:col-span-1 px-3 py-2 border rounded-lg" placeholder="المحاضر" value={newCourse.doctor} onChange={e => setNewCourse({...newCourse, doctor: e.target.value})} />
+                            <select className="md:col-span-1 px-3 py-2 border rounded-lg bg-white" value={newCourse.day} onChange={e => setNewCourse({...newCourse, day: e.target.value})}>
+                                {['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'].map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                            <input type="time" className="md:col-span-1 px-3 py-2 border rounded-lg" required value={newCourse.time} onChange={e => setNewCourse({...newCourse, time: e.target.value})} />
+                            <button disabled={isAdding} className="md:col-span-1 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition flex items-center justify-center">
+                                {isAdding ? '...' : <i data-lucide="plus" className="w-5 h-5"></i>}
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* List */}
+                    {loading ? <p className="text-center text-gray-400">جاري التحميل...</p> : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {courses.map(course => (
-                                <Card key={course.id} className="relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-1 h-full bg-indigo-500"></div>
-                                    <div className="flex justify-between items-start">
-                                        <div className="pl-4">
-                                            <h3 className="font-bold text-lg text-slate-800">{course.name}</h3>
-                                            <p className="text-sm text-slate-500 mb-2">{course.instructor || '---'}</p>
-                                            <div className="flex flex-wrap gap-2 text-xs">
-                                                <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded flex items-center gap-1">
-                                                    <Icons.Calendar className="w-3 h-3" /> {course.day}
-                                                </span>
-                                                <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded flex items-center gap-1">
-                                                    <Icons.Clock className="w-3 h-3" /> {course.time}
-                                                </span>
-                                                <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded flex items-center gap-1">
-                                                    <Icons.MapPin className="w-3 h-3" /> {course.room}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => deleteCourse(course.id)} className="text-slate-300 hover:text-red-500 p-2">
-                                            <Icons.Trash2 className="w-5 h-5" />
-                                        </button>
+                                <div key={course.id} className="bg-white p-5 rounded-xl shadow-sm border-r-4 border-r-indigo-500 border border-gray-100 relative group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-bold text-lg text-gray-800">{course.name}</h3>
+                                        <button onClick={() => handleDelete(course.id)} className="text-gray-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
                                     </div>
-                                </Card>
+                                    <p className="text-sm text-gray-500 mb-3 flex items-center gap-1"><i data-lucide="user" className="w-3 h-3"></i> {course.doctor || 'غير محدد'}</p>
+                                    <div className="flex gap-2 text-xs font-bold">
+                                        <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded">{course.day}</span>
+                                        <span className="bg-orange-50 text-orange-600 px-2 py-1 rounded">{course.time}</span>
+                                    </div>
+                                </div>
                             ))}
+                            {courses.length === 0 && <p className="col-span-full text-center py-10 text-gray-400 border-2 border-dashed rounded-xl">لا توجد مواد مضافة</p>}
                         </div>
                     )}
                 </div>
             );
+        };
 
-            const ScheduleView = () => (
-                <div className="pb-24 space-y-6">
-                    <header className="mb-4 bg-white sticky top-0 py-2 z-10">
-                        <h1 className="text-2xl font-bold text-slate-800">الجدول</h1>
-                        <p className="text-slate-400 text-xs">من السبت إلى الثلاثاء</p>
-                    </header>
+        // 5. Tasks Component (Real DB)
+        const TasksView = ({ user }) => {
+            const [tasks, setTasks] = useState([]);
+            const [newTask, setNewTask] = useState('');
+            const [loading, setLoading] = useState(true);
 
-                    {days.map(day => {
-                        const dayCourses = courses.filter(c => c.day === day).sort((a, b) => a.time.localeCompare(b.time));
-                        return (
-                            <div key={day} className="mb-6">
-                                <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2 bg-slate-50 p-2 rounded-lg">
-                                    <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-                                    {day}
-                                </h3>
-                                {dayCourses.length > 0 ? (
-                                    <div className="space-y-3 pl-2">
-                                        {dayCourses.map(course => (
-                                            <div key={course.id} className="bg-white p-3 rounded-lg border-l-4 border-l-indigo-500 border border-slate-100 shadow-sm flex gap-4">
-                                                <div className="flex flex-col items-center justify-center min-w-[60px]">
-                                                    <span className="text-sm font-bold text-slate-800">{course.time}</span>
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-slate-800 text-sm">{course.name}</h4>
-                                                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                                                        <Icons.MapPin className="w-3 h-3" /> {course.room}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : <p className="text-xs text-slate-400 italic pr-6">لا محاضرات</p>}
-                            </div>
-                        );
-                    })}
-                </div>
-            );
+            useEffect(() => {
+                const { db, collection, query, where, onSnapshot } = window.fb;
+                const q = query(collection(db, "tasks"), where("uid", "==", user.uid));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    // Sort locally since we didn't add complex indexes
+                    data.sort((a,b) => b.createdAt?.seconds - a.createdAt?.seconds);
+                    setTasks(data);
+                    setLoading(false);
+                    if(window.lucide) setTimeout(() => window.lucide.createIcons(), 100);
+                });
+                return () => unsubscribe();
+            }, [user]);
 
-            const TasksView = () => (
-                <div className="pb-24 space-y-4">
-                    <header className="flex justify-between items-center mb-4">
-                        <h1 className="text-2xl font-bold text-slate-800">المهام</h1>
-                        <Button onClick={() => setShowAddTask(true)} variant="primary" className="!px-3 !py-2 rounded-full">
-                            <Icons.Plus className="w-5 h-5" />
-                        </Button>
-                    </header>
+            const addTask = async (e) => {
+                e.preventDefault();
+                if(!newTask.trim()) return;
+                const { db, collection, addDoc } = window.fb;
+                await addDoc(collection(db, "tasks"), {
+                    uid: user.uid,
+                    title: newTask,
+                    completed: false,
+                    createdAt: new Date()
+                });
+                setNewTask('');
+            };
+
+            const toggleTask = async (task) => {
+                const { db, doc, updateDoc } = window.fb;
+                await updateDoc(doc(db, "tasks", task.id), { completed: !task.completed });
+            };
+
+            const deleteTask = async (id) => {
+                const { db, doc, deleteDoc } = window.fb;
+                await deleteDoc(doc(db, "tasks", id));
+            };
+
+            return (
+                <div className="max-w-3xl mx-auto space-y-6">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">المهام والواجبات</h2>
+                    
+                    <form onSubmit={addTask} className="flex gap-3">
+                        <input className="flex-1 px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                               placeholder="ماذا تريد أن تنجز اليوم؟" value={newTask} onChange={e => setNewTask(e.target.value)} />
+                        <button className="bg-indigo-600 text-white px-6 rounded-xl font-bold hover:bg-indigo-700 transition">إضافة</button>
+                    </form>
 
                     <div className="space-y-3">
-                        {tasks.length === 0 ? (
-                            <div className="text-center py-12 text-slate-400">
-                                <Icons.CheckSquare className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                                <p className="text-sm">لا توجد مهام</p>
+                        {loading ? <p className="text-center text-gray-400">جاري التحميل...</p> : tasks.map(task => (
+                            <div key={task.id} className={`flex items-center gap-4 p-4 bg-white rounded-xl border transition-all ${task.completed ? 'border-gray-100 opacity-60 bg-gray-50' : 'border-indigo-100 shadow-sm'}`}>
+                                <button onClick={() => toggleTask(task)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition ${task.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-indigo-500'}`}>
+                                    {task.completed && <i data-lucide="check" className="w-4 h-4 text-white"></i>}
+                                </button>
+                                <span className={`flex-1 font-medium ${task.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>{task.title}</span>
+                                <button onClick={() => deleteTask(task.id)} className="text-gray-300 hover:text-red-500 p-2"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
                             </div>
-                        ) : (
-                            tasks.map(task => (
-                                <div key={task.id} className={`flex items-center gap-3 p-4 bg-white rounded-xl border transition-all ${task.completed ? 'border-slate-100 bg-slate-50 opacity-70' : 'border-indigo-50 shadow-sm'}`}>
-                                    <button onClick={() => toggleTask(task.id)} className="shrink-0">
-                                        {task.completed ? <Icons.CheckCircle className="w-6 h-6 text-green-500" /> : <Icons.Circle className="w-6 h-6 text-slate-300 hover:text-indigo-500" />}
-                                    </button>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : 'text-slate-800'}`}>{task.title}</h4>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            {task.courseId && <span className="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full truncate">{getCourseName(task.courseId)}</span>}
-                                            {task.date && <span className="text-[10px] flex items-center gap-1 text-orange-500"><Icons.Clock className="w-3 h-3" /> {task.date}</span>}
-                                        </div>
-                                    </div>
-                                    <button onClick={() => deleteTask(task.id)} className="text-slate-300 hover:text-red-500 p-2"><Icons.Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            ))
+                        ))}
+                        {!loading && tasks.length === 0 && (
+                            <div className="text-center py-12">
+                                <i data-lucide="coffee" className="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
+                                <p className="text-gray-500">لا توجد مهام حالياً. استرخ!</p>
+                            </div>
                         )}
                     </div>
                 </div>
             );
+        };
 
-            // --- Render ---
+        // 6. Home Summary View
+        const HomeView = ({ user, setTab }) => {
+            const [stats, setStats] = useState({ courses: 0, tasks: 0 });
+
+            useEffect(() => {
+                const { db, collection, query, where, onSnapshot } = window.fb;
+                const unsub1 = onSnapshot(query(collection(db, "courses"), where("uid", "==", user.uid)), s => setStats(p => ({...p, courses: s.size})));
+                const unsub2 = onSnapshot(query(collection(db, "tasks"), where("uid", "==", user.uid), where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
+                return () => { unsub1(); unsub2(); };
+            }, [user]);
+
             return (
-                <main className="max-w-md mx-auto min-h-screen bg-white shadow-2xl relative overflow-hidden">
-                    <div className="h-full overflow-y-auto p-5 pb-24 custom-scrollbar" style={{height: '100vh'}}>
-                        {activeTab === 'home' && <HomeView />}
-                        {activeTab === 'courses' && <CoursesView />}
-                        {activeTab === 'schedule' && <ScheduleView />}
-                        {activeTab === 'tasks' && <TasksView />}
+                <div className="space-y-8">
+                    <div className="bg-indigo-600 rounded-2xl p-8 text-white shadow-xl shadow-indigo-200">
+                        <h1 className="text-3xl font-bold mb-2">أهلاً بك، طالبنا العزيز 👋</h1>
+                        <p className="text-indigo-200">نتمنى لك فصلاً دراسياً مليئاً بالإنجازات.</p>
                     </div>
 
-                    <nav className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-6 py-3 flex justify-between items-center z-10">
-                        {[
-                            { id: 'home', icon: Icons.Home, label: 'الرئيسية' },
-                            { id: 'schedule', icon: Icons.Calendar, label: 'الجدول' },
-                            { id: 'courses', icon: Icons.BookOpen, label: 'المواد' },
-                            { id: 'tasks', icon: Icons.CheckSquare, label: 'المهام' },
-                        ].map(tab => (
-                            <button 
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex flex-col items-center gap-1 ${activeTab === tab.id ? 'text-indigo-600 -translate-y-1' : 'text-slate-400'}`}
-                            >
-                                <tab.icon className="w-6 h-6" />
-                                <span className="text-[10px] font-bold">{tab.label}</span>
-                            </button>
-                        ))}
-                    </nav>
-
-                    {showAddCourse && (
-                        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom-10">
-                                <div className="flex justify-between items-center mb-5">
-                                    <h3 className="text-lg font-bold">إضافة مادة</h3>
-                                    <button onClick={() => setShowAddCourse(false)}><Icons.X className="w-5 h-5 text-slate-400" /></button>
-                                </div>
-                                <div className="space-y-4">
-                                    <Input placeholder="اسم المادة" value={newCourse.name} onChange={(e) => setNewCourse({...newCourse, name: e.target.value})} />
-                                    <Input placeholder="الدكتور" value={newCourse.instructor} onChange={(e) => setNewCourse({...newCourse, instructor: e.target.value})} />
-                                    <div className="flex gap-3">
-                                        <select className="w-1/2 p-2 border rounded-lg bg-white" value={newCourse.day} onChange={(e) => setNewCourse({...newCourse, day: e.target.value})}>
-                                            {days.map(d => <option key={d} value={d}>{d}</option>)}
-                                        </select>
-                                        <div className="w-1/2"><Input type="time" value={newCourse.time} onChange={(e) => setNewCourse({...newCourse, time: e.target.value})} /></div>
-                                    </div>
-                                    <Input placeholder="القاعة" value={newCourse.room} onChange={(e) => setNewCourse({...newCourse, room: e.target.value})} />
-                                    <Button onClick={addCourse} className="w-full">حفظ</Button>
-                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div onClick={() => setTab('courses')} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="bg-blue-50 p-3 rounded-xl group-hover:bg-blue-100 transition"><i data-lucide="book-open" className="w-6 h-6 text-blue-600"></i></div>
+                                <span className="text-4xl font-bold text-gray-800">{stats.courses}</span>
                             </div>
+                            <h3 className="text-gray-500 font-medium">مواد مسجلة</h3>
+                            <p className="text-xs text-blue-500 mt-2">عرض التفاصيل &larr;</p>
                         </div>
-                    )}
 
-                    {showAddTask && (
-                        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-                                <div className="flex justify-between items-center mb-5">
-                                    <h3 className="text-lg font-bold">إضافة واجب</h3>
-                                    <button onClick={() => setShowAddTask(false)}><Icons.X className="w-5 h-5 text-slate-400" /></button>
-                                </div>
-                                <div className="space-y-4">
-                                    <Input placeholder="عنوان المهمة" value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})} />
-                                    <select className="w-full p-2 border rounded-lg bg-white" value={newTask.courseId} onChange={(e) => setNewTask({...newTask, courseId: e.target.value})}>
-                                        <option value="">اختر مادة (اختياري)</option>
-                                        {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                    <Input type="date" value={newTask.date} onChange={(e) => setNewTask({...newTask, date: e.target.value})} />
-                                    <Button onClick={addTask} className="w-full">حفظ</Button>
-                                </div>
+                        <div onClick={() => setTab('tasks')} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition cursor-pointer group">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="bg-orange-50 p-3 rounded-xl group-hover:bg-orange-100 transition"><i data-lucide="alert-circle" className="w-6 h-6 text-orange-600"></i></div>
+                                <span className="text-4xl font-bold text-gray-800">{stats.tasks}</span>
                             </div>
+                            <h3 className="text-gray-500 font-medium">مهام معلقة</h3>
+                            <p className="text-xs text-orange-500 mt-2">إنجاز المهام &larr;</p>
                         </div>
-                    )}
-                </main>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl border border-gray-100">
+                        <h3 className="font-bold text-gray-800 mb-4">نصائح سريعة</h3>
+                        <div className="space-y-3 text-sm text-gray-600">
+                            <p className="flex gap-2"><i data-lucide="check-circle" className="w-4 h-4 text-green-500"></i> قم بتسجيل المهام فور تكليفك بها.</p>
+                            <p className="flex gap-2"><i data-lucide="check-circle" className="w-4 h-4 text-green-500"></i> راجع جدولك الدراسي يومياً.</p>
+                            <p className="flex gap-2"><i data-lucide="check-circle" className="w-4 h-4 text-green-500"></i> خصص وقتاً للراحة بين المحاضرات.</p>
+                        </div>
+                    </div>
+                </div>
             );
-        }
+        };
+
+        // --- Root App ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [firebaseReady, setFirebaseReady] = useState(false);
+
+            useEffect(() => {
+                // Wait for Firebase to load from the module script
+                const checkFirebase = () => {
+                    if (window.fb) {
+                        setFirebaseReady(true);
+                        const { auth, onAuthStateChanged } = window.fb;
+                        const unsubscribe = onAuthStateChanged(auth, (u) => {
+                            setUser(u);
+                            setLoading(false);
+                            // Init icons after render
+                            setTimeout(() => { if(window.lucide) window.lucide.createIcons(); }, 100);
+                        });
+                        return unsubscribe;
+                    }
+                };
+
+                // Listen for custom event or check interval
+                if (window.fb) {
+                    checkFirebase();
+                } else {
+                    window.addEventListener('firebase-ready', checkFirebase);
+                }
+            }, []);
+
+            if (!firebaseReady || loading) return <Loading />;
+
+            return user ? <Dashboard user={user} /> : <AuthScreen />;
+        };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
