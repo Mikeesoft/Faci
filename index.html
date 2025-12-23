@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جامعتي - النظام الماسي</title>
+    <title>جامعتي - النظام الكامل</title>
     
     <!-- React & DOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -78,31 +78,20 @@
         // --- Shared ---
         const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل...</p></div>;
 
-        // --- 1. Auth Screen (Updated for Username) ---
+        // 1. Auth Screen
         const AuthScreen = () => {
             const [isRegister, setIsRegister] = useState(false);
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
-            const [username, setUsername] = useState('');
             const [error, setError] = useState('');
             const [loading, setLoading] = useState(false);
 
             const handleSubmit = async (e) => {
                 e.preventDefault(); setError(''); setLoading(true);
                 try {
-                    const { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, setDoc, doc } = window.fb;
-                    if (isRegister) {
-                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                        await updateProfile(userCredential.user, { displayName: username });
-                        // Save extra user data
-                        await setDoc(doc(db, "users", userCredential.user.uid), {
-                            uid: userCredential.user.uid,
-                            email: email,
-                            username: username
-                        });
-                    } else {
-                        await signInWithEmailAndPassword(auth, email, password);
-                    }
+                    const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
+                    if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
+                    else await signInWithEmailAndPassword(auth, email, password);
                 } catch (err) { setError("يرجى التحقق من البيانات."); } finally { setLoading(false); }
             };
 
@@ -119,9 +108,8 @@
                             <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
                             {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                {isRegister && <input type="text" required className="w-full h-12 px-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" value={username} onChange={e => setUsername(e.target.value)} placeholder="اسم الطالب (الثلاثي)" />}
-                                <input type="email" required className="w-full h-12 px-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" value={email} onChange={e => setEmail(e.target.value)} placeholder="البريد الإلكتروني" />
-                                <input type="password" required className="w-full h-12 px-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
+                                <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} placeholder="البريد الإلكتروني" />
+                                <input type="password" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
                                 <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center">
                                     {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}
                                 </button>
@@ -133,7 +121,7 @@
             );
         };
 
-        // --- 2. Pomodoro (Classic) ---
+        // 2. Pomodoro (Classic)
         const PomodoroTimer = () => {
             const [timeLeft, setTimeLeft] = useState(25 * 60);
             const [isActive, setIsActive] = useState(false);
@@ -154,7 +142,7 @@
             );
         };
 
-        // --- 3. Training View (Legendary Edition - Fixes) ---
+        // 3. Training View
         const TrainingView = ({ user }) => {
             const [viewMode, setViewMode] = useState('list');
             const [exams, setExams] = useState([]);
@@ -181,7 +169,6 @@
             const [showLeaderboard, setShowLeaderboard] = useState(null);
             const [leaderboardData, setLeaderboardData] = useState([]);
             const [examRequests, setExamRequests] = useState([]); // Admin only
-            const [myResult, setMyResult] = useState(null); // For student status
 
             const isAdmin = user.email === ADMIN_EMAIL;
 
@@ -195,7 +182,6 @@
 
             useEffect(() => {
                 if(isAdmin) {
-                    // Watch for requests
                     const q = window.fb.query(window.fb.collection(window.fb.db, "exam_requests"), window.fb.where("status", "==", "pending"));
                     const unsub = window.fb.onSnapshot(q, s => setExamRequests(s.docs.map(d=>({id:d.id, ...d.data()}))));
                     return () => unsub();
@@ -215,29 +201,22 @@
                 const q = window.fb.query(window.fb.collection(window.fb.db, "exam_results"), window.fb.where("examId", "==", exam.id), window.fb.where("userId", "==", user.uid));
                 const snap = await window.fb.getDocs(q);
                 
-                // Check if request exists
                 const reqQ = window.fb.query(window.fb.collection(window.fb.db, "exam_requests"), window.fb.where("examId", "==", exam.id), window.fb.where("userId", "==", user.uid));
                 const reqSnap = await window.fb.getDocs(reqQ);
                 const reqData = reqSnap.empty ? null : reqSnap.docs[0].data();
 
                 if (!snap.empty) {
-                    // Exam taken
                     const result = snap.docs[0].data();
-                    // If approved request exists OR no pending request but want to retake...
-                    // Simplified Logic: If taken, show grade and "Request Retake".
-                    // If Request is 'approved', allow start.
                     if (reqData && reqData.status === 'approved') {
-                        // Cleanup request and result to allow retake
                         await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exam_results", snap.docs[0].id));
                         await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exam_requests", reqSnap.docs[0].id));
                         startExam(exam);
                     } else if (reqData && reqData.status === 'pending') {
-                        alert("طلب الإعادة قيد المراجعة من المشرف.");
+                        alert("طلب الإعادة قيد المراجعة.");
                     } else {
-                        alert(`لقد أنهيت هذا الاختبار. درجتك: ${result.score}/${result.total}`);
-                        if(confirm("هل تريد إرسال طلب إعادة للمشرف؟")) {
+                        if(confirm(`أنهيت الاختبار بدرجة ${result.score}/${result.total}. هل تطلب إعادة؟`)) {
                             await window.fb.addDoc(window.fb.collection(window.fb.db, "exam_requests"), {
-                                examId: exam.id, userId: user.uid, username: user.displayName || user.email, examTitle: exam.title, status: 'pending', timestamp: new Date()
+                                examId: exam.id, userId: user.uid, username: user.displayName, examTitle: exam.title, status: 'pending', timestamp: new Date()
                             });
                             alert("تم إرسال الطلب.");
                         }
@@ -269,28 +248,18 @@
 
             const finishExam = async () => {
                 setExamFinished(true);
-                await window.fb.addDoc(window.fb.collection(window.fb.db, "exam_results"), { examId: currentExam.id, userId: user.uid, username: user.displayName || "مستخدم", score: score, total: currentExam.questions.length, timestamp: new Date() });
+                await window.fb.addDoc(window.fb.collection(window.fb.db, "exam_results"), { examId: currentExam.id, userId: user.uid, username: user.displayName || "مجهول", score: score, total: currentExam.questions.length, timestamp: new Date() });
             };
 
-            // --- RENDER TRAINING ---
-
-            // Leaderboard Modal (Backdrop Click to Close)
             if (showLeaderboard) return (
                 <div onClick={()=>setShowLeaderboard(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in cursor-pointer">
                     <div onClick={e=>e.stopPropagation()} className="bg-white dark:bg-dark-card w-full max-w-md rounded-3xl p-6 shadow-2xl border dark:border-dark-border cursor-default transform transition-all scale-100">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="font-bold text-xl dark:text-white flex items-center gap-2"><i data-lucide="trophy" className="text-yellow-500 w-7 h-7"></i> لوحة الأوائل</h3>
-                            <button onClick={()=>setShowLeaderboard(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-dark-bg rounded-full transition"><i data-lucide="x" className="text-slate-400"></i></button>
-                        </div>
+                        <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-xl dark:text-white flex items-center gap-2"><i data-lucide="trophy" className="text-yellow-500 w-7 h-7"></i> لوحة الأوائل</h3><button onClick={()=>setShowLeaderboard(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-dark-bg rounded-full transition"><i data-lucide="x" className="text-slate-400"></i></button></div>
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
                             {leaderboardData.length === 0 ? <p className="text-center text-slate-400 py-10">كن أول من يتصدر!</p> : 
                             leaderboardData.map((res, i) => (
                                 <div key={i} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-dark-bg rounded-2xl border border-slate-100 dark:border-dark-border">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold shadow-sm ${i===0?'bg-yellow-400 text-white':i===1?'bg-gray-300 text-gray-800':i===2?'bg-orange-300 text-white':'bg-white text-slate-600 border'}`}>{i+1}</div>
-                                        <span className="font-bold dark:text-white truncate max-w-[140px]">{res.username}</span>
-                                    </div>
-                                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-mono font-bold">{res.score}/{res.total}</span>
+                                    <div className="flex items-center gap-4"><div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold shadow-sm ${i===0?'bg-yellow-400 text-white':i===1?'bg-gray-300 text-gray-800':i===2?'bg-orange-300 text-white':'bg-white text-slate-600 border'}`}>{i+1}</div><span className="font-bold dark:text-white truncate max-w-[140px]">{res.username}</span></div><span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-mono font-bold">{res.score}/{res.total}</span>
                                 </div>
                             ))}
                         </div>
@@ -302,32 +271,18 @@
                 <div className="space-y-6 animate-fade-in">
                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">نماذج التدريب</h2>{isAdmin && <button onClick={()=>setViewMode('create')} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1"><i data-lucide="plus" className="w-4 h-4"></i> إضافة</button>}</div>
                     
-                    {/* Admin Requests Panel */}
                     {isAdmin && examRequests.length > 0 && (
                         <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-4">
-                            <h3 className="font-bold text-orange-800 mb-2">طلبات إعادة الامتحان ({examRequests.length})</h3>
-                            <div className="space-y-2">
-                                {examRequests.map(req => (
-                                    <div key={req.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm">
-                                        <span className="text-sm">الطالب <b>{req.username}</b> يريد إعادة <b>{req.examTitle}</b></span>
-                                        <button onClick={()=>approveRequest(req.id)} className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">قبول</button>
-                                    </div>
-                                ))}
-                            </div>
+                            <h3 className="font-bold text-orange-800 mb-2">طلبات إعادة ({examRequests.length})</h3>
+                            <div className="space-y-2">{examRequests.map(req => (<div key={req.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm"><span className="text-sm">الطالب <b>{req.username}</b> - <b>{req.examTitle}</b></span><button onClick={()=>approveRequest(req.id)} className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">قبول</button></div>))}</div>
                         </div>
                     )}
 
                     <div className="grid md:grid-cols-2 gap-4">{exams.map(e => (
                         <div key={e.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border shadow-sm flex flex-col justify-between group">
-                            <div className="flex justify-between items-start mb-4">
-                                <div><h3 className="font-bold dark:text-white text-lg">{e.title}</h3><p className="text-xs text-slate-500 mt-1">{e.questions.length} سؤال</p></div>
-                                {isAdmin && <button onClick={()=>deleteExam(e.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}
-                            </div>
+                            <div className="flex justify-between items-start mb-4"><div><h3 className="font-bold dark:text-white text-lg">{e.title}</h3><p className="text-xs text-slate-500 mt-1">{e.questions.length} سؤال</p></div>{isAdmin && <button onClick={()=>deleteExam(e.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}</div>
                             <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-dark-border">
-                                <div className="flex gap-3">
-                                    <div className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded-lg"><i data-lucide="eye" className="w-4 h-4 text-indigo-500"></i> {e.views || 0}</div>
-                                    <button onClick={()=>fetchLeaderboard(e.id)} className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded-lg hover:bg-yellow-50 hover:text-yellow-600 transition"><i data-lucide="trophy" className="w-4 h-4 text-yellow-500"></i> الأوائل</button>
-                                </div>
+                                <div className="flex gap-3"><div className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded-lg"><i data-lucide="eye" className="w-4 h-4 text-indigo-500"></i> {e.views || 0}</div><button onClick={()=>fetchLeaderboard(e.id)} className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded-lg hover:bg-yellow-50 hover:text-yellow-600 transition"><i data-lucide="trophy" className="w-4 h-4 text-yellow-500"></i> الأوائل</button></div>
                                 <button onClick={()=>checkExamStatus(e)} className="bg-slate-900 dark:bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1 hover:scale-105 transition-transform">دخول <i data-lucide="arrow-left" className="w-4 h-4"></i></button>
                             </div>
                         </div>
@@ -335,7 +290,6 @@
                 </div>
             );
 
-            // Create Exam
             if(viewMode === 'create' && isAdmin) return (
                 <div className="space-y-4 animate-fade-in">
                     <button onClick={()=>setViewMode('list')} className="text-slate-500 flex items-center gap-1"><i data-lucide="arrow-right" className="w-4 h-4"></i> عودة</button>
@@ -345,16 +299,14 @@
                             <div className="flex gap-2 mb-2"><button onClick={()=>setQType('mcq')} className={`px-3 py-1 rounded text-xs ${qType==='mcq'?'bg-indigo-600 text-white':'bg-white dark:bg-dark-card dark:text-white'}`}>اختيارات</button><button onClick={()=>setQType('essay')} className={`px-3 py-1 rounded text-xs ${qType==='essay'?'bg-indigo-600 text-white':'bg-white dark:bg-dark-card dark:text-white'}`}>مقالي</button></div>
                             <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="نص السؤال" value={qText} onChange={e=>setQText(e.target.value)} />
                             {qType === 'mcq' && qOptions.map((o,i)=><div key={i} className="flex gap-2"><input type="radio" name="cor" checked={qCorrect===i} onChange={()=>setQCorrect(i)} /><input className="flex-1 p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder={`خيار ${i+1}`} value={o} onChange={e=>{const n=[...qOptions];n[i]=e.target.value;setQOptions(n)}} /></div>)}
-                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder={qType==='mcq' ? "شرح الإجابة (اختياري)" : "الإجابة النموذجية (لتظهر للطالب)"} value={qExplanation} onChange={e=>setQExplanation(e.target.value)} />
+                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="الشرح / الإجابة النموذجية" value={qExplanation} onChange={e=>setQExplanation(e.target.value)} />
                             <button onClick={addQ} className="w-full bg-slate-800 text-white py-2 rounded text-sm font-bold">إضافة السؤال</button>
                         </div>
-                        <div className="text-sm text-slate-500">تمت إضافة {questions.length} أسئلة</div>
                         <button onClick={saveExam} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">نشر النموذج</button>
                     </div>
                 </div>
             );
 
-            // Take Exam
             if(viewMode === 'take' && currentExam) {
                 if (examFinished) return (
                     <div className="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-6 animate-fade-in bg-white dark:bg-dark-card p-8 rounded-3xl border dark:border-dark-border shadow-xl">
@@ -382,10 +334,7 @@
                                     return <button key={i} disabled={selectedOption!==null} onClick={()=>handleAnswer(i)} className={cls}><span className={`w-6 h-6 rounded-full flex items-center justify-center border text-xs ${i===q.correct && selectedOption!==null ? 'bg-green-500 text-white border-green-500' : 'bg-white dark:bg-dark-bg border-slate-300 dark:border-dark-border'}`}>{String.fromCharCode(65+i)}</span>{opt}</button>
                                 })}</div>
                             ) : (
-                                <div className="space-y-4">
-                                    <textarea className="w-full p-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" rows="4" placeholder="اكتب إجابتك هنا..."></textarea>
-                                    <button onClick={()=>setEssayAnswerShown(!essayAnswerShown)} className="text-indigo-600 dark:text-indigo-400 text-sm font-bold underline flex items-center gap-2"><i data-lucide="eye" className="w-4 h-4"></i> {essayAnswerShown ? 'إخفاء' : 'إظهار'} الإجابة النموذجية</button>
-                                </div>
+                                <div className="space-y-4"><textarea className="w-full p-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" rows="4" placeholder="اكتب إجابتك هنا..."></textarea><button onClick={()=>setEssayAnswerShown(!essayAnswerShown)} className="text-indigo-600 dark:text-indigo-400 text-sm font-bold underline flex items-center gap-2"><i data-lucide="eye" className="w-4 h-4"></i> {essayAnswerShown ? 'إخفاء' : 'إظهار'} الإجابة النموذجية</button></div>
                             )}
                             {(showExplanation || essayAnswerShown) && q.explanation && <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl text-sm border border-blue-100 dark:border-blue-900"><div className="font-bold mb-1 flex items-center gap-2"><i data-lucide="info" className="w-4 h-4"></i> الإجابة:</div>{q.explanation}</div>}
                             <div className="mt-8 flex justify-end"><button disabled={q.type==='mcq' && selectedOption===null} onClick={()=>{if(activeQIndex < currentExam.questions.length - 1) { setActiveQIndex(p=>p+1); setSelectedOption(null); setShowExplanation(false); setEssayAnswerShown(false); } else { finishExam(); }}} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold disabled:opacity-50 hover:bg-indigo-700 transition">{activeQIndex === currentExam.questions.length - 1 ? 'إنهاء' : 'التالي'}</button></div>
@@ -428,7 +377,7 @@
             );
         };
 
-        // --- 5. Courses View (RESTORED WARNING) ---
+        // --- 5. Courses View (WARNINGS FIXED) ---
         const CoursesView = ({ user }) => {
             const [courses, setCourses] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -467,17 +416,19 @@
                         </form>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">{courses.map(c => {
-                        const abs = c.absences||0; const max = c.maxAbsence||4; const danger = abs >= max-1;
+                        const abs = c.absences||0; const max = c.maxAbsence||4;
+                        const isDanger = abs >= max; // Red
+                        const isWarning = abs === max - 1; // Orange
                         return (
-                            <div key={c.id} className={`p-5 bg-white dark:bg-dark-card border rounded-xl relative ${danger?'border-red-300 bg-red-50 dark:bg-red-900/10':'dark:border-dark-border'}`}>
+                            <div key={c.id} className={`p-5 bg-white dark:bg-dark-card border rounded-xl relative ${isDanger?'border-red-300 bg-red-50 dark:bg-red-900/10 dark:border-red-900':isWarning?'border-orange-300 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-900':'dark:border-dark-border'}`}>
                                 <div className="flex justify-between mb-2">
                                     <div><h3 className="font-bold text-lg dark:text-white">{c.name}</h3><div className="text-xs text-slate-500 flex flex-wrap gap-2 mt-1"><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{c.doctor}</span><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{c.day} {c.time}</span>{c.grade&&<span className="bg-emerald-100 text-emerald-700 px-2 rounded font-bold">{c.grade}</span>}</div></div>
                                     <button onClick={()=>handleDelete(c.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4"></i></button>
                                 </div>
                                 <div className="bg-slate-50 dark:bg-dark-bg/50 p-2 rounded mt-2 border dark:border-dark-border">
                                     <div className="flex justify-between items-center mb-1"><span className="text-xs font-bold dark:text-white">الغياب: {abs}/{max}</span><div className="flex gap-1"><button onClick={()=>updateAbsence(c,-1)} className="px-2 border rounded bg-white dark:bg-dark-card dark:text-white">-</button><button onClick={()=>updateAbsence(c,1)} className="px-2 border rounded bg-indigo-50 text-indigo-600">+</button></div></div>
-                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-dark-border rounded-full overflow-hidden"><div className={`h-full ${danger?'bg-red-500':'bg-indigo-500'}`} style={{width:`${Math.min((abs/max)*100,100)}%`}}></div></div>
-                                    {danger && <p className="text-[10px] text-red-500 font-bold mt-1 animate-pulse">تحذير: اقتربت من الحرمان</p>}
+                                    <div className="h-1.5 w-full bg-slate-200 dark:bg-dark-border rounded-full overflow-hidden"><div className={`h-full ${isDanger?'bg-red-500':isWarning?'bg-orange-500':'bg-indigo-500'}`} style={{width:`${Math.min((abs/max)*100,100)}%`}}></div></div>
+                                    {isDanger ? <p className="text-[10px] text-red-600 dark:text-red-400 font-bold mt-1 animate-pulse"> تجاوزت الحد المسموح (حرمان) 🚫</p> : isWarning ? <p className="text-[10px] text-orange-600 dark:text-orange-400 font-bold mt-1"> انتبه! باقي غياب واحد ⚠️</p> : null}
                                 </div>
                             </div>
                         )
@@ -509,7 +460,7 @@
             );
         };
 
-        // --- 7. Home View (Dashboard Stats) ---
+        // --- 7. Home View ---
         const HomeView = ({ user, setTab }) => {
             const [stats, setStats] = useState({ courses: 0, tasks: 0 });
             const [nextExam, setNextExam] = useState(null);
@@ -523,7 +474,7 @@
             return (
                 <div className="space-y-8 animate-fade-in">
                     <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
-                        <div className="relative z-10"><h1 className="text-3xl font-bold mb-2">مرحباً {user.displayName} 👋</h1><p className="text-indigo-100 opacity-90">استغل وقتك جيداً اليوم!</p></div>
+                        <div className="relative z-10"><h1 className="text-3xl font-bold mb-2">مرحباً {user.displayName || "بك"} 👋</h1><p className="text-indigo-100 opacity-90">استغل وقتك جيداً اليوم!</p></div>
                         <i data-lucide="award" className="absolute left-4 bottom-[-20px] w-32 h-32 text-white opacity-10 transform rotate-12"></i>
                     </div>
                     {nextExam && <div onClick={()=>setTab('exams')} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-red-100 transition"><div className="flex items-center gap-3"><div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 animate-pulse-slow"><i data-lucide="alarm-clock" className="w-6 h-6"></i></div><div><div className="text-red-800 dark:text-red-300 font-bold text-sm uppercase tracking-wider">الامتحان القادم</div><div className="text-slate-900 dark:text-white font-bold text-lg">{nextExam.subject} <span className="text-sm font-normal">({nextExam.type})</span></div></div></div><div className="text-left"><div className="text-2xl font-bold font-mono text-slate-800 dark:text-white">{Math.ceil((new Date(nextExam.date) - new Date()) / (1000 * 60 * 60 * 24))}</div><div className="text-[10px] uppercase font-bold text-slate-500">أيام متبقية</div></div></div>}
@@ -541,12 +492,38 @@
             const [activeTab, setActiveTab] = useState('home');
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+            const [showNameModal, setShowNameModal] = useState(false);
+            const [newName, setNewName] = useState('');
+
             useEffect(() => { if(darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); localStorage.setItem('theme', darkMode ? 'dark' : 'light'); }, [darkMode]);
             useEffect(() => { setTimeout(() => window.lucide.createIcons(), 50); }, [activeTab, showMobileMenu]);
+            
+            // Check for username
+            useEffect(() => { if (!user.displayName) setShowNameModal(true); }, [user]);
+
+            const saveUsername = async () => {
+                if(!newName.trim()) return;
+                await window.fb.updateProfile(user, { displayName: newName });
+                await window.fb.setDoc(window.fb.doc(window.fb.db, "users", user.uid), { username: newName }, { merge: true });
+                setShowNameModal(false);
+            };
+
             const NavItem = ({ id, icon, label }) => ( <button onClick={() => { setActiveTab(id); setShowMobileMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-bg dark:hover:text-white'}`}><i data-lucide={icon} className="w-5 h-5"></i><span>{label}</span></button> );
 
             return (
                 <div className="min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors flex">
+                    {/* Username Modal */}
+                    {showNameModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-xl w-full max-w-sm text-center">
+                                <h3 className="text-xl font-bold mb-2 dark:text-white">أهلاً بك! 👋</h3>
+                                <p className="text-slate-500 mb-4 text-sm">من فضلك اكتب اسمك ليظهر في لوحة الأوائل</p>
+                                <input className="w-full p-3 border rounded-xl mb-4 dark:bg-dark-input dark:text-white" placeholder="اسمك الثلاثي" value={newName} onChange={e=>setNewName(e.target.value)} />
+                                <button onClick={saveUsername} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">حفظ ومتابعة</button>
+                            </div>
+                        </div>
+                    )}
+
                     <aside className="hidden md:flex flex-col w-72 bg-white dark:bg-dark-card border-l dark:border-dark-border p-6 shadow-sm z-50 sticky top-0 h-screen">
                         <div className="flex items-center gap-3 px-2 mb-10"><div className="bg-indigo-600 p-2 rounded-lg shadow-lg"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div><span className="font-bold text-2xl text-slate-800 dark:text-white tracking-tight">جامعتي</span></div>
                         <nav className="flex-1 space-y-2">
