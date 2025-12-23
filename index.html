@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- سياسة أمان المحتوى (CSP) لحماية الموقع من الهجمات -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com https://*.gstatic.com https://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;">
-    <title>جامعتي - النظام البلاتيني</title>
     
-    <!-- Libraries -->
+    <title>جامعتي - النظام الآمن</title>
+    
+    <!-- React & DOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
     <script>
@@ -23,15 +31,8 @@
                     colors: {
                         dark: { bg: '#0f172a', card: '#1e293b', border: '#334155', text: '#f1f5f9', muted: '#94a3b8', input: '#020617' }
                     },
-                    animation: { 
-                        'fade-in': 'fadeIn 0.3s ease-out',
-                        'slide-up': 'slideUp 0.4s ease-out',
-                        'bounce-slow': 'bounce 3s infinite'
-                    },
-                    keyframes: { 
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(100%)' }, '100%': { transform: 'translateY(0)' } }
-                    }
+                    animation: { 'fade-in': 'fadeIn 0.4s ease-out' },
+                    keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(5px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
                 }
             }
         }
@@ -43,10 +44,6 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; } .dark ::-webkit-scrollbar-thumb { background: #475569; }
         input, select, textarea { font-size: 16px !important; }
-        
-        /* Custom Toast Animation */
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.2); animation: toastSlide 0.3s ease-out; }
-        @keyframes toastSlide { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text selection:bg-indigo-500 selection:text-white overflow-x-hidden">
@@ -55,8 +52,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, getDocs, setDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // إعدادات الاتصال (API Key عام ولا يشكل خطراً إذا كانت القواعد مضبوطة)
         const firebaseConfig = {
             apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
             authDomain: "myeduplatform-fe0eb.firebaseapp.com",
@@ -68,248 +66,326 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        window.fb = { 
-            auth: getAuth(app), db: getFirestore(app), 
-            signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, 
-            collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, getDocs, setDoc, orderBy, limit 
-        };
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, getDocs, setDoc };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- Constants ---
-        const ADMIN_EMAIL = "admin@university.edu"; // ⚠️ CHANGE THIS ⚠️
+        // --- إعدادات الأدمن (محمية بقواعد البيانات أيضاً) ---
+        const ADMIN_EMAIL = "mohammadsafe202a@gmail.com";
 
-        // --- Helpers ---
-        const sanitize = (str) => typeof str === 'string' ? str.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim() : str;
-
-        // --- UI Context (Toast & Modal) ---
-        const UIContext = createContext();
-        const useUI = () => useContext(UIContext);
-
-        const UIProvider = ({ children }) => {
-            const [toast, setToast] = useState(null);
-            const [modal, setModal] = useState(null); // { message, onConfirm }
-
-            const showToast = (msg, type='success') => {
-                setToast({ msg, type });
-                setTimeout(() => setToast(null), 3000);
-            };
-
-            const showConfirm = (message, onConfirm) => {
-                setModal({ message, onConfirm });
-            };
-
-            return (
-                <UIContext.Provider value={{ showToast, showConfirm }}>
-                    {children}
-                    {toast && (
-                        <div className={`toast ${toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-emerald-600 text-white'}`}>
-                            {toast.msg}
-                        </div>
-                    )}
-                    {modal && (
-                        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-2xl w-full max-w-sm border dark:border-dark-border transform scale-100">
-                                <h3 className="text-lg font-bold mb-4 dark:text-white">تأكيد الإجراء</h3>
-                                <p className="text-slate-600 dark:text-dark-muted mb-6">{modal.message}</p>
-                                <div className="flex gap-3">
-                                    <button onClick={() => { modal.onConfirm(); setModal(null); }} className="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-bold hover:bg-red-700">نعم، تابع</button>
-                                    <button onClick={() => setModal(null)} className="flex-1 bg-slate-100 dark:bg-dark-bg text-slate-700 dark:text-white py-2.5 rounded-xl font-bold">إلغاء</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </UIContext.Provider>
-            );
+        // --- Helper: دالة تنظيف المدخلات (Security Sanitize) ---
+        const sanitize = (str) => {
+            if (typeof str !== 'string') return str;
+            return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim();
         };
 
-        // --- 1. Broadcast Overlay (New) ---
-        const BroadcastOverlay = () => {
-            const [msg, setMsg] = useState(null);
-            useEffect(() => {
-                const q = window.fb.query(window.fb.collection(window.fb.db, "broadcasts"), window.fb.orderBy("timestamp", "desc"), window.fb.limit(1));
-                const unsub = window.fb.onSnapshot(q, s => {
-                    if(!s.empty) {
-                        const data = s.docs[0].data();
-                        // Show only if created in last 10 seconds (simulating live toast)
-                        if (new Date() - data.timestamp.toDate() < 10000) {
-                            setMsg(data.message);
-                            setTimeout(() => setMsg(null), 5000);
-                        }
-                    }
-                });
-                return () => unsub();
-            }, []);
+        // --- Shared ---
+        const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل الآمن...</p></div>;
 
-            if (!msg) return null;
+        // 1. Auth Screen
+        const AuthScreen = () => {
+            const [isRegister, setIsRegister] = useState(false);
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault(); 
+                if(!email.includes('@') || password.length < 6) { setError("بيانات غير صالحة"); return; }
+                setError(''); setLoading(true);
+                try {
+                    const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
+                    if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
+                    else await signInWithEmailAndPassword(auth, email, password);
+                } catch (err) { setError("فشل الدخول. تحقق من البيانات."); } finally { setLoading(false); }
+            };
+
             return (
-                <div className="fixed bottom-0 left-0 right-0 bg-indigo-600 text-white p-4 z-[999] animate-slide-up shadow-2xl border-t border-indigo-400">
-                    <div className="max-w-md mx-auto flex items-center gap-3">
-                        <div className="bg-white/20 p-2 rounded-full"><i data-lucide="megaphone" className="w-6 h-6 animate-pulse"></i></div>
-                        <div>
-                            <p className="text-xs font-bold opacity-80 uppercase tracking-wider">تحديث عاجل من الإدارة</p>
-                            <p className="font-bold text-lg">{msg}</p>
+                <div className="min-h-screen bg-slate-100 dark:bg-dark-bg flex items-center justify-center p-4 transition-colors">
+                    <div className="bg-white dark:bg-dark-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border dark:border-dark-border">
+                        <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-white/5 transform skew-y-6 scale-150"></div>
+                            <i data-lucide="shield-check" className="w-14 h-14 text-white mx-auto mb-3 relative z-10"></i>
+                            <h1 className="text-2xl font-bold text-white relative z-10">جامعتي</h1>
+                            <p className="text-indigo-100 text-sm relative z-10">نظام آمن ومشفر</p>
+                        </div>
+                        <div className="p-8">
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
+                            {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(sanitize(e.target.value))} placeholder="البريد الإلكتروني" />
+                                <input type="password" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
+                                <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center">
+                                    {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}
+                                </button>
+                            </form>
+                            <button onClick={() => setIsRegister(!isRegister)} className="mt-6 w-full text-indigo-600 dark:text-indigo-400 text-sm hover:underline font-medium">{isRegister ? 'لديك حساب؟ سجل دخول' : 'ليس لديك حساب؟'}</button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- 2. Notifications Logic ---
-        const NotificationBell = ({ user }) => {
-            const [count, setCount] = useState(0);
-            const [show, setShow] = useState(false);
-            const [notifs, setNotifs] = useState([]);
-
+        // 2. Pomodoro (Classic)
+        const PomodoroTimer = () => {
+            const [timeLeft, setTimeLeft] = useState(25 * 60);
+            const [isActive, setIsActive] = useState(false);
+            const [mode, setMode] = useState('focus');
             useEffect(() => {
-                // Listen for recent public exams as "Notifications"
-                const q1 = window.fb.query(window.fb.collection(window.fb.db, "practice_exams"), window.fb.orderBy("createdAt", "desc"), window.fb.limit(5));
-                const unsub = window.fb.onSnapshot(q1, s => {
-                    const data = s.docs.map(d => ({ type: 'exam', title: d.data().title, time: d.data().createdAt }));
-                    setNotifs(data);
-                    // Simple logic: if new data comes, increment count (in real app, track read status)
-                    if(data.length > 0) setCount(c => c + 1);
-                });
-                return () => unsub();
-            }, []);
-
+                let interval = null;
+                if (isActive && timeLeft > 0) interval = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
+                else if (timeLeft === 0) { setIsActive(false); alert("انتهى الوقت!"); }
+                return () => clearInterval(interval);
+            }, [isActive, timeLeft]);
+            const switchMode = (m) => { setMode(m); setIsActive(false); setTimeLeft(m === 'focus' ? 25 * 60 : 5 * 60); };
+            const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
             return (
-                <div className="relative">
-                    <button onClick={()=>setShow(!show)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg relative">
-                        <i data-lucide="bell" className="w-5 h-5 text-slate-600 dark:text-dark-muted"></i>
-                        {count > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-dark-card"></span>}
-                    </button>
-                    {show && (
-                        <div className="absolute left-0 top-12 w-64 bg-white dark:bg-dark-card rounded-xl shadow-xl border dark:border-dark-border z-50 p-2 animate-fade-in">
-                            <h4 className="text-xs font-bold text-slate-400 px-2 py-1 mb-1">الإشعارات الجديدة</h4>
-                            {notifs.length === 0 ? <p className="text-center text-xs p-2">لا توجد إشعارات</p> : 
-                            notifs.map((n, i) => (
-                                <div key={i} className="p-2 hover:bg-slate-50 dark:hover:bg-dark-bg rounded-lg flex gap-2 items-start">
-                                    <div className="bg-indigo-100 p-1 rounded mt-0.5"><i data-lucide="file-question" className="w-3 h-3 text-indigo-600"></i></div>
-                                    <div><p className="text-sm font-bold dark:text-white">تم إضافة: {n.title}</p><p className="text-[10px] text-slate-400">منذ قليل</p></div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-dark-border mb-8 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div className="flex justify-between items-center mb-6 relative z-10"><h3 className="font-bold text-lg dark:text-white flex items-center gap-2"><i data-lucide="timer" className="w-5 h-5 text-indigo-500"></i> مؤقت الإنجاز</h3><div className="flex bg-slate-100 dark:bg-dark-bg p-1 rounded-lg"><button onClick={()=>switchMode('focus')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${mode==='focus'?'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm':'text-slate-500 dark:text-dark-muted'}`}>مذاكرة</button><button onClick={()=>switchMode('break')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${mode==='break'?'bg-white dark:bg-emerald-600 text-emerald-600 dark:text-white shadow-sm':'text-slate-500 dark:text-dark-muted'}`}>راحة</button></div></div><div className="flex flex-col items-center relative z-10"><div className="text-7xl font-bold font-mono text-slate-800 dark:text-white mb-6 tracking-tighter">{formatTime(timeLeft)}</div><div className="flex gap-4"><button onClick={()=>setIsActive(!isActive)} className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition transform active:scale-95 ${isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}><i data-lucide={isActive ? "pause" : "play"} className="w-6 h-6 fill-current"></i></button><button onClick={()=>{setIsActive(false); setTimeLeft(mode==='focus'?25*60:5*60)}} className="w-14 h-14 rounded-full bg-slate-100 dark:bg-dark-bg text-slate-600 dark:text-dark-muted flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 transition"><i data-lucide="rotate-ccw" className="w-6 h-6"></i></button></div></div>
                 </div>
             );
         };
 
-        // --- 3. Forum View (New) ---
-        const ForumView = ({ user }) => {
-            const [posts, setPosts] = useState([]);
-            const [newPost, setNewPost] = useState('');
-            const [replyText, setReplyText] = useState({}); // Map for reply inputs
+        // 3. Training View (Legendary Edition - Fixes)
+        const TrainingView = ({ user }) => {
+            const [viewMode, setViewMode] = useState('list');
+            const [exams, setExams] = useState([]);
+            const [currentExam, setCurrentExam] = useState(null);
+            const [newExamTitle, setNewExamTitle] = useState('');
+            const [questions, setQuestions] = useState([]);
+            const [qType, setQType] = useState('mcq');
+            const [qText, setQText] = useState('');
+            const [qOptions, setQOptions] = useState(['', '', '', '']);
+            const [qCorrect, setQCorrect] = useState(0);
+            const [qExplanation, setQExplanation] = useState('');
+            const [activeQIndex, setActiveQIndex] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showExplanation, setShowExplanation] = useState(false);
+            const [score, setScore] = useState(0);
+            const [examFinished, setExamFinished] = useState(false);
+            const [essayAnswerShown, setEssayAnswerShown] = useState(false);
+            const [showLeaderboard, setShowLeaderboard] = useState(null);
+            const [leaderboardData, setLeaderboardData] = useState([]);
+            const [examRequests, setExamRequests] = useState([]);
+
             const isAdmin = user.email === ADMIN_EMAIL;
-            const { showToast, showConfirm } = useUI();
 
             useEffect(() => {
-                const q = window.fb.query(window.fb.collection(window.fb.db, "forum_posts"), window.fb.orderBy("timestamp", "desc"));
-                const unsub = window.fb.onSnapshot(q, s => {
-                    setPosts(s.docs.map(d => ({ id: d.id, ...d.data() })));
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "practice_exams")), (s) => {
+                    setExams(s.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setTimeout(() => window.lucide.createIcons(), 100);
                 });
                 return () => unsub();
             }, []);
 
-            const addPost = async (e) => {
-                e.preventDefault();
-                if(!newPost.trim()) return;
-                await window.fb.addDoc(window.fb.collection(window.fb.db, "forum_posts"), {
-                    text: sanitize(newPost),
-                    userId: user.uid,
-                    username: user.displayName || "طالب",
-                    timestamp: new Date(),
-                    reply: null
-                });
-                setNewPost('');
-                showToast("تم نشر سؤالك");
+            useEffect(() => {
+                if(isAdmin) {
+                    const q = window.fb.query(window.fb.collection(window.fb.db, "exam_requests"), window.fb.where("status", "==", "pending"));
+                    const unsub = window.fb.onSnapshot(q, s => setExamRequests(s.docs.map(d=>({id:d.id, ...d.data()}))));
+                    return () => unsub();
+                }
+            }, [isAdmin]);
+
+            const fetchLeaderboard = async (examId) => {
+                setShowLeaderboard(examId);
+                const q = window.fb.query(window.fb.collection(window.fb.db, "exam_results"), window.fb.where("examId", "==", examId)); 
+                const snap = await window.fb.getDocs(q);
+                const data = snap.docs.map(d => d.data()).sort((a,b) => b.score - a.score);
+                setLeaderboardData(data);
             };
 
-            const sendReply = async (postId) => {
-                if(!replyText[postId]) return;
-                await window.fb.updateDoc(window.fb.doc(window.fb.db, "forum_posts", postId), {
-                    reply: sanitize(replyText[postId]),
-                    replyBy: user.displayName || "الأدمن"
-                });
-                setReplyText({...replyText, [postId]: ''});
-                showToast("تم إرسال الرد");
+            const checkExamStatus = async (exam) => {
+                const q = window.fb.query(window.fb.collection(window.fb.db, "exam_results"), window.fb.where("examId", "==", exam.id), window.fb.where("userId", "==", user.uid));
+                const snap = await window.fb.getDocs(q);
+                const reqQ = window.fb.query(window.fb.collection(window.fb.db, "exam_requests"), window.fb.where("examId", "==", exam.id), window.fb.where("userId", "==", user.uid));
+                const reqSnap = await window.fb.getDocs(reqQ);
+                const reqData = reqSnap.empty ? null : reqSnap.docs[0].data();
+
+                if (!snap.empty) {
+                    const result = snap.docs[0].data();
+                    if (reqData && reqData.status === 'approved') {
+                        await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exam_results", snap.docs[0].id));
+                        await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exam_requests", reqSnap.docs[0].id));
+                        startExam(exam);
+                    } else if (reqData && reqData.status === 'pending') {
+                        alert("طلب الإعادة قيد المراجعة.");
+                    } else {
+                        if(confirm(`أنهيت الاختبار بدرجة ${result.score}/${result.total}. هل تطلب إعادة؟`)) {
+                            await window.fb.addDoc(window.fb.collection(window.fb.db, "exam_requests"), {
+                                examId: exam.id, userId: user.uid, username: user.displayName, examTitle: exam.title, status: 'pending', timestamp: new Date()
+                            });
+                            alert("تم إرسال الطلب.");
+                        }
+                    }
+                } else {
+                    startExam(exam);
+                }
             };
 
-            const deletePost = (id) => {
-                showConfirm("حذف هذا المنشور؟", async () => {
-                    await window.fb.deleteDoc(window.fb.doc(window.fb.db, "forum_posts", id));
-                    showToast("تم الحذف", "error");
-                });
+            const approveRequest = async (reqId) => {
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, "exam_requests", reqId), { status: 'approved' });
+                alert("تم قبول الطلب");
             };
 
-            return (
-                <div className="space-y-6 animate-fade-in max-w-3xl mx-auto">
-                    <h2 className="text-2xl font-bold dark:text-white flex items-center gap-2"><i data-lucide="messages-square" className="text-indigo-500"></i> المنتدى الطلابي</h2>
-                    
-                    <div className="bg-white dark:bg-dark-card p-4 rounded-2xl border dark:border-dark-border shadow-sm">
-                        <textarea className="w-full p-3 bg-slate-50 dark:bg-dark-input dark:text-white rounded-xl border-none outline-none focus:ring-2 focus:ring-indigo-500" rows="3" placeholder="اكتب سؤالك أو استفسارك هنا..." value={newPost} onChange={e=>setNewPost(e.target.value)}></textarea>
-                        <div className="mt-2 flex justify-end">
-                            <button onClick={addPost} className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition">نشر</button>
+            const addQ = () => { if(!qText) return; setQuestions([...questions, { id: Date.now(), type: qType, text: sanitize(qText), explanation: sanitize(qExplanation), options: qType === 'mcq' ? qOptions.map(o=>sanitize(o)) : [], correct: qType === 'mcq' ? qCorrect : null }]); setQText(''); setQExplanation(''); setQOptions(['', '', '', '']); setQCorrect(0); };
+            const saveExam = async () => { if(!newExamTitle || questions.length === 0) return; await window.fb.addDoc(window.fb.collection(window.fb.db, "practice_exams"), { title: sanitize(newExamTitle), questions: questions, createdBy: user.email, createdAt: new Date(), views: 0 }); setViewMode('list'); setNewExamTitle(''); setQuestions([]); };
+            const deleteExam = async (id) => { if(confirm("حذف؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "practice_exams", id)); };
+
+            const startExam = async (exam) => {
+                try { await window.fb.updateDoc(window.fb.doc(window.fb.db, "practice_exams", exam.id), { views: (exam.views || 0) + 1 }); } catch(e){}
+                setCurrentExam(exam); setActiveQIndex(0); setSelectedOption(null); setShowExplanation(false); setScore(0); setExamFinished(false); setViewMode('take');
+            };
+
+            const handleAnswer = (idx) => {
+                if (selectedOption !== null) return;
+                setSelectedOption(idx); setShowExplanation(true);
+                if (idx === currentExam.questions[activeQIndex].correct) setScore(s => s + 1);
+            };
+
+            const finishExam = async () => {
+                setExamFinished(true);
+                await window.fb.addDoc(window.fb.collection(window.fb.db, "exam_results"), { examId: currentExam.id, userId: user.uid, username: user.displayName || "مجهول", score: score, total: currentExam.questions.length, timestamp: new Date() });
+            };
+
+            if (showLeaderboard) return (
+                <div onClick={()=>setShowLeaderboard(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in cursor-pointer">
+                    <div onClick={e=>e.stopPropagation()} className="bg-white dark:bg-dark-card w-full max-w-md rounded-3xl p-6 shadow-2xl border dark:border-dark-border cursor-default">
+                        <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-xl dark:text-white flex items-center gap-2"><i data-lucide="trophy" className="text-yellow-500 w-7 h-7"></i> لوحة الأوائل</h3><button onClick={()=>setShowLeaderboard(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-dark-bg rounded-full transition"><i data-lucide="x" className="text-slate-400"></i></button></div>
+                        <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            {leaderboardData.length === 0 ? <p className="text-center text-slate-400 py-10">كن أول من يتصدر!</p> : 
+                            leaderboardData.map((res, i) => (
+                                <div key={i} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-dark-bg rounded-2xl border border-slate-100 dark:border-dark-border">
+                                    <div className="flex items-center gap-4"><div className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold shadow-sm ${i===0?'bg-yellow-400 text-white':i===1?'bg-gray-300 text-gray-800':i===2?'bg-orange-300 text-white':'bg-white text-slate-600 border'}`}>{i+1}</div><span className="font-bold dark:text-white truncate max-w-[140px]">{res.username}</span></div><span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-mono font-bold">{res.score}/{res.total}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
+                </div>
+            );
 
-                    <div className="space-y-4">
-                        {posts.map(post => (
-                            <div key={post.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border shadow-sm">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">{post.username[0]}</div>
-                                        <div>
-                                            <h4 className="font-bold dark:text-white text-sm">{post.username}</h4>
-                                            <p className="text-[10px] text-slate-400">{post.timestamp?.toDate().toLocaleDateString('ar-EG')}</p>
-                                        </div>
-                                    </div>
-                                    {(isAdmin || post.userId === user.uid) && (
-                                        <button onClick={()=>deletePost(post.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
-                                    )}
-                                </div>
-                                <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">{post.text}</p>
-
-                                {/* Admin Reply Section */}
-                                {post.reply ? (
-                                    <div className="bg-slate-50 dark:bg-dark-bg p-4 rounded-xl border-r-4 border-indigo-500">
-                                        <div className="flex items-center gap-2 mb-1 text-xs font-bold text-indigo-600 dark:text-indigo-400">
-                                            <i data-lucide="corner-down-left" className="w-3 h-3"></i> رد من {post.replyBy}
-                                        </div>
-                                        <p className="text-sm dark:text-white">{post.reply}</p>
-                                    </div>
-                                ) : (
-                                    isAdmin && (
-                                        <div className="flex gap-2 mt-4 pt-4 border-t dark:border-dark-border">
-                                            <input className="flex-1 px-3 py-2 rounded-lg border dark:bg-dark-bg dark:border-dark-border dark:text-white text-sm" placeholder="اكتب رداً..." value={replyText[post.id] || ''} onChange={e => setReplyText({...replyText, [post.id]: e.target.value})} />
-                                            <button onClick={()=>sendReply(post.id)} className="bg-slate-900 dark:bg-indigo-600 text-white p-2 rounded-lg"><i data-lucide="send" className="w-4 h-4"></i></button>
-                                        </div>
-                                    )
-                                )}
+            if(viewMode === 'list') return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">نماذج التدريب</h2>{isAdmin && <button onClick={()=>setViewMode('create')} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1"><i data-lucide="plus" className="w-4 h-4"></i> إضافة</button>}</div>
+                    {isAdmin && examRequests.length > 0 && (<div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-4"><h3 className="font-bold text-orange-800 mb-2">طلبات إعادة ({examRequests.length})</h3><div className="space-y-2">{examRequests.map(req => (<div key={req.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm"><span className="text-sm">الطالب <b>{req.username}</b> - <b>{req.examTitle}</b></span><button onClick={()=>approveRequest(req.id)} className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">قبول</button></div>))}</div></div>)}
+                    <div className="grid md:grid-cols-2 gap-4">{exams.map(e => (
+                        <div key={e.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border shadow-sm flex flex-col justify-between group">
+                            <div className="flex justify-between items-start mb-4"><div><h3 className="font-bold dark:text-white text-lg">{e.title}</h3><p className="text-xs text-slate-500 mt-1">{e.questions.length} سؤال</p></div>{isAdmin && <button onClick={()=>deleteExam(e.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}</div>
+                            <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-dark-border">
+                                <div className="flex gap-3"><div className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded-lg"><i data-lucide="eye" className="w-4 h-4 text-indigo-500"></i> {e.views || 0}</div><button onClick={()=>fetchLeaderboard(e.id)} className="flex items-center gap-1 text-slate-500 text-xs font-bold bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded-lg hover:bg-yellow-50 hover:text-yellow-600 transition"><i data-lucide="trophy" className="w-4 h-4 text-yellow-500"></i> الأوائل</button></div>
+                                <button onClick={()=>checkExamStatus(e)} className="bg-slate-900 dark:bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1 hover:scale-105 transition-transform">دخول <i data-lucide="arrow-left" className="w-4 h-4"></i></button>
                             </div>
-                        ))}
+                        </div>
+                    ))}</div>
+                </div>
+            );
+
+            if(viewMode === 'create' && isAdmin) return (
+                <div className="space-y-4 animate-fade-in">
+                    <button onClick={()=>setViewMode('list')} className="text-slate-500 flex items-center gap-1"><i data-lucide="arrow-right" className="w-4 h-4"></i> عودة</button>
+                    <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border space-y-4">
+                        <input className="w-full p-2 border-b dark:bg-dark-card dark:text-white outline-none font-bold" placeholder="عنوان النموذج" value={newExamTitle} onChange={e=>setNewExamTitle(sanitize(e.target.value))} />
+                        <div className="bg-slate-50 dark:bg-dark-bg p-4 rounded-xl space-y-3">
+                            <div className="flex gap-2 mb-2"><button onClick={()=>setQType('mcq')} className={`px-3 py-1 rounded text-xs ${qType==='mcq'?'bg-indigo-600 text-white':'bg-white dark:bg-dark-card dark:text-white'}`}>اختيارات</button><button onClick={()=>setQType('essay')} className={`px-3 py-1 rounded text-xs ${qType==='essay'?'bg-indigo-600 text-white':'bg-white dark:bg-dark-card dark:text-white'}`}>مقالي</button></div>
+                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="نص السؤال" value={qText} onChange={e=>setQText(sanitize(e.target.value))} />
+                            {qType === 'mcq' && qOptions.map((o,i)=><div key={i} className="flex gap-2"><input type="radio" name="cor" checked={qCorrect===i} onChange={()=>setQCorrect(i)} /><input className="flex-1 p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder={`خيار ${i+1}`} value={o} onChange={e=>{const n=[...qOptions];n[i]=sanitize(e.target.value);setQOptions(n)}} /></div>)}
+                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="الشرح / الإجابة النموذجية" value={qExplanation} onChange={e=>setQExplanation(sanitize(e.target.value))} />
+                            <button onClick={addQ} className="w-full bg-slate-800 text-white py-2 rounded text-sm font-bold">إضافة السؤال</button>
+                        </div>
+                        <button onClick={saveExam} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">نشر النموذج</button>
                     </div>
+                </div>
+            );
+
+            if(viewMode === 'take' && currentExam) {
+                if (examFinished) return (
+                    <div className="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-6 animate-fade-in bg-white dark:bg-dark-card p-8 rounded-3xl border dark:border-dark-border shadow-xl">
+                        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-2"><i data-lucide="award" className="w-12 h-12 text-green-600"></i></div>
+                        <div><h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">النتيجة النهائية</h2><p className="text-slate-500 dark:text-dark-muted">اختبار {currentExam.title}</p></div>
+                        <div className="text-6xl font-mono font-bold text-indigo-600 dark:text-indigo-400">{score} <span className="text-2xl text-slate-400">/ {currentExam.questions.length}</span></div>
+                        <button onClick={()=>setViewMode('list')} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold">حفظ والخروج</button>
+                    </div>
+                );
+
+                const q = currentExam.questions[activeQIndex];
+                return (
+                    <div className="space-y-6 animate-fade-in max-w-2xl mx-auto">
+                        <div className="flex justify-between items-center"><h3 className="font-bold dark:text-white">{currentExam.title}</h3><span className="text-xs bg-indigo-100 px-2 py-1 rounded text-indigo-700">{activeQIndex+1}/{currentExam.questions.length}</span></div>
+                        <div className="w-full bg-slate-200 dark:bg-dark-border h-1.5 rounded-full overflow-hidden mb-4"><div className="bg-indigo-600 h-full transition-all duration-500" style={{width: `${((activeQIndex + 1) / currentExam.questions.length) * 100}%`}}></div></div>
+                        <div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border dark:border-dark-border">
+                            <h2 className="text-lg font-bold mb-6 dark:text-white">{q.text}</h2>
+                            {q.type === 'mcq' ? (
+                                <div className="space-y-3">{q.options.map((opt, i) => {
+                                    let cls = "w-full text-right p-4 rounded-xl border transition flex items-center gap-3 ";
+                                    if (selectedOption === null) cls += "border-slate-200 dark:border-dark-border hover:bg-slate-50 dark:hover:bg-dark-bg dark:text-white";
+                                    else if (i === q.correct) cls += "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400";
+                                    else if (i === selectedOption) cls += "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400";
+                                    else cls += "border-slate-100 dark:border-dark-border opacity-50 dark:text-dark-muted";
+                                    return <button key={i} disabled={selectedOption!==null} onClick={()=>handleAnswer(i)} className={cls}><span className={`w-6 h-6 rounded-full flex items-center justify-center border text-xs ${i===q.correct && selectedOption!==null ? 'bg-green-500 text-white border-green-500' : 'bg-white dark:bg-dark-bg border-slate-300 dark:border-dark-border'}`}>{String.fromCharCode(65+i)}</span>{opt}</button>
+                                })}</div>
+                            ) : (
+                                <div className="space-y-4"><textarea className="w-full p-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white outline-none focus:ring-2 focus:ring-indigo-500" rows="4" placeholder="اكتب إجابتك هنا..."></textarea><button onClick={()=>setEssayAnswerShown(!essayAnswerShown)} className="text-indigo-600 dark:text-indigo-400 text-sm font-bold underline flex items-center gap-2"><i data-lucide="eye" className="w-4 h-4"></i> {essayAnswerShown ? 'إخفاء' : 'إظهار'} الإجابة النموذجية</button></div>
+                            )}
+                            {(showExplanation || essayAnswerShown) && q.explanation && <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl text-sm border border-blue-100 dark:border-blue-900"><div className="font-bold mb-1 flex items-center gap-2"><i data-lucide="info" className="w-4 h-4"></i> الإجابة:</div>{q.explanation}</div>}
+                            <div className="mt-8 flex justify-end"><button disabled={q.type==='mcq' && selectedOption===null} onClick={()=>{if(activeQIndex < currentExam.questions.length - 1) { setActiveQIndex(p=>p+1); setSelectedOption(null); setShowExplanation(false); setEssayAnswerShown(false); } else { finishExam(); }}} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold disabled:opacity-50 hover:bg-indigo-700 transition">{activeQIndex === currentExam.questions.length - 1 ? 'إنهاء' : 'التالي'}</button></div>
+                        </div>
+                    </div>
+                );
+            }
+            return null;
+        };
+
+        // --- 4. Exams Hub (Classic) ---
+        const ExamsView = ({ user }) => {
+            const [exams, setExams] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [newExam, setNewExam] = useState({ subject: '', type: 'Final', date: '', location: '' });
+            const [isAdding, setIsAdding] = useState(false);
+            useEffect(() => {
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), s => {
+                    setExams(s.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => new Date(a.date) - new Date(b.date))); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
+                }); return () => unsub();
+            }, [user]);
+            const addExam = async (e) => { e.preventDefault(); if(!newExam.subject) return; setIsAdding(true); await window.fb.addDoc(window.fb.collection(window.fb.db, "exams"), { uid: user.uid, ...newExam, createdAt: new Date() }); setNewExam({ subject: '', type: 'Final', date: '', location: '' }); setIsAdding(false); };
+            const deleteExam = async (id) => { if(confirm("حذف؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exams", id)); };
+            const getTimeLeft = (d) => { const t = Date.parse(d) - Date.parse(new Date()); return { t, days: Math.floor(t / (1000*60*60*24)), hours: Math.floor((t / (1000*60*60)) % 24) }; };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">غرفة الامتحانات</h2><span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{exams.length} قادمة</span></div>
+                    <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border dark:border-dark-border">
+                        <form onSubmit={addExam} className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <input className="col-span-2 md:col-span-2 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white outline-none" placeholder="المادة" required value={newExam.subject} onChange={e => setNewExam(sanitize(e.target.value))} />
+                            <select className="w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-input dark:border-dark-border dark:text-white" value={newExam.type} onChange={e => setNewExam({...newExam, type: e.target.value})}><option>Final</option><option>Midterm</option><option>Quiz</option></select>
+                            <input type="datetime-local" className="col-span-2 md:col-span-1 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" required value={newExam.date} onChange={e => setNewExam({...newExam, date: e.target.value})} />
+                            <input className="w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="القاعة" value={newExam.location} onChange={e => setNewExam(sanitize(e.target.value))} />
+                            <button disabled={isAdding} className="col-span-2 md:col-span-5 h-11 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition">{isAdding ? '...' : 'حفظ الامتحان'}</button>
+                        </form>
+                    </div>
+                    {loading ? <div className="text-center p-10 text-slate-400">تحميل...</div> : <div className="grid md:grid-cols-2 gap-4">{exams.map(x=>{const {t,days,hours}=getTimeLeft(x.date); return <div key={x.id} className="p-5 rounded-xl border dark:border-dark-border bg-white dark:bg-dark-card shadow-sm"><div className="flex justify-between mb-2"><h3 className="font-bold dark:text-white">{x.subject} <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-800">{x.type}</span></h3><button onClick={()=>deleteExam(x.id)} className="text-red-500"><i data-lucide="trash-2" className="w-4"></i></button></div><div className="text-sm text-slate-500 flex gap-2 mb-3"><i data-lucide="calendar" className="w-4"/> {new Date(x.date).toLocaleString()}</div><div className="flex items-center gap-4 border-t border-slate-100 dark:border-dark-border pt-3">{t>0?<><div className="text-center flex-1"><div className="text-xl font-bold dark:text-white">{days}</div><div className="text-xs text-slate-500">يوم</div></div><div className="text-center flex-1"><div className="text-xl font-bold dark:text-white">{hours}</div><div className="text-xs text-slate-500">ساعة</div></div></>:<div className="w-full text-center font-bold text-slate-400">انتهى</div>}</div></div>})}</div>}
                 </div>
             );
         };
 
-        // --- Other Views (Courses, Exams, etc - Same logic, just replacing alert/confirm) ---
-        // I'll keep them concise but integrated with UIContext.
-
+        // --- 5. Courses View (WARNINGS FIXED & SECURE) ---
         const CoursesView = ({ user }) => {
             const [courses, setCourses] = useState([]);
+            const [loading, setLoading] = useState(true);
             const [newCourse, setNewCourse] = useState({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' });
-            const { showToast, showConfirm } = useUI();
             const gradePoints = { 'A+': 4.0, 'A': 3.75, 'B+': 3.5, 'B': 3.0, 'C+': 2.5, 'C': 2.0, 'D+': 1.5, 'D': 1.0, 'F': 0 };
+            const [isAdding, setIsAdding] = useState(false);
 
             useEffect(() => {
-                return window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), s => {
-                    setCourses(s.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setTimeout(() => window.lucide.createIcons(), 100);
-                });
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), (s) => {
+                    setCourses(s.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
+                }); return () => unsub();
             }, [user]);
 
             const gpa = useMemo(() => {
@@ -317,31 +393,35 @@
                 return tC===0 ? "0.00" : (tP/tC).toFixed(2);
             }, [courses]);
 
-            const handleAdd = async (e) => { e.preventDefault(); if(!newCourse.name) return; await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { uid: user.uid, ...newCourse, absences: 0 }); setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' }); showToast("تمت إضافة المادة"); };
+            const handleAdd = async (e) => { e.preventDefault(); if(!newCourse.name) return; setIsAdding(true); await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { uid: user.uid, ...newCourse, absences: 0, createdAt: new Date() }); setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' }); setIsAdding(false); };
             const updateAbsence = async (c, ch) => { const n = (c.absences||0)+ch; if(n<0) return; await window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: n }); };
-            const handleDelete = async (id) => { showConfirm("حذف المادة؟", async () => { await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id)); showToast("تم الحذف", "error"); }); };
+            const handleDelete = async (id) => { if(confirm("حذف؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id)); };
 
             return (
                 <div className="space-y-6 animate-fade-in">
                     <div className="flex justify-between items-center"><div><h2 className="text-2xl font-bold dark:text-white">المواد</h2><p className="text-sm text-slate-500">الجدول والمعدل</p></div><div className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-center"><div className="text-xs opacity-80">GPA</div><div className="text-xl font-bold font-mono">{gpa}</div></div></div>
                     <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border">
                         <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                            <input className="col-span-2 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="اسم المادة" required value={newCourse.name} onChange={e=>setNewCourse({...newCourse, name: sanitize(e.target.value)})} />
+                            <input className="col-span-2 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="اسم المادة" value={newCourse.name} onChange={e=>setNewCourse({...newCourse, name: sanitize(e.target.value)})} />
                             <input className="col-span-1 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="دكتور" value={newCourse.doctor} onChange={e=>setNewCourse({...newCourse, doctor: sanitize(e.target.value)})} />
                             <select className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.day} onChange={e=>setNewCourse({...newCourse, day: e.target.value})}>{['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'].map(d=><option key={d} value={d}>{d}</option>)}</select>
                             <input type="time" className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.time} onChange={e=>setNewCourse({...newCourse, time: e.target.value})} />
                             <select className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.grade} onChange={e=>setNewCourse({...newCourse, grade: e.target.value})}><option value="">الدرجة</option>{Object.keys(gradePoints).map(g=><option key={g} value={g}>{g}</option>)}</select>
                             <input type="number" className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="الحد" value={newCourse.maxAbsence} onChange={e=>setNewCourse({...newCourse, maxAbsence: parseInt(e.target.value)})} />
                             <select className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.credits} onChange={e=>setNewCourse({...newCourse, credits: e.target.value})}><option value="1">1س</option><option value="2">2س</option><option value="3">3س</option><option value="4">4س</option></select>
-                            <button className="col-span-2 md:col-span-6 bg-indigo-600 text-white rounded font-bold py-2">حفظ المادة</button>
+                            <button disabled={isAdding} className="col-span-2 md:col-span-6 bg-indigo-600 text-white rounded font-bold py-2">{isAdding?'...':'حفظ المادة'}</button>
                         </form>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">{courses.map(c => {
                         const abs = c.absences||0; const max = c.maxAbsence||4;
-                        const isDanger = abs >= max; const isWarning = abs === max - 1;
+                        const isDanger = abs >= max; // Red (Exceeded)
+                        const isWarning = abs === max - 1; // Orange (1 left)
                         return (
                             <div key={c.id} className={`p-5 bg-white dark:bg-dark-card border rounded-xl relative ${isDanger?'border-red-300 bg-red-50 dark:bg-red-900/10 dark:border-red-900':isWarning?'border-orange-300 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-900':'dark:border-dark-border'}`}>
-                                <div className="flex justify-between mb-2"><div><h3 className="font-bold text-lg dark:text-white">{c.name}</h3><div className="text-xs text-slate-500 flex flex-wrap gap-2 mt-1"><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{c.doctor}</span><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{c.day} {c.time}</span>{c.grade&&<span className="bg-emerald-100 text-emerald-700 px-2 rounded font-bold">{c.grade}</span>}</div></div><button onClick={()=>handleDelete(c.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4"></i></button></div>
+                                <div className="flex justify-between mb-2">
+                                    <div><h3 className="font-bold text-lg dark:text-white">{c.name}</h3><div className="text-xs text-slate-500 flex flex-wrap gap-2 mt-1"><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{c.doctor}</span><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{c.day} {c.time}</span>{c.grade&&<span className="bg-emerald-100 text-emerald-700 px-2 rounded font-bold">{c.grade}</span>}</div></div>
+                                    <button onClick={()=>handleDelete(c.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4"></i></button>
+                                </div>
                                 <div className="bg-slate-50 dark:bg-dark-bg/50 p-2 rounded mt-2 border dark:border-dark-border">
                                     <div className="flex justify-between items-center mb-1"><span className="text-xs font-bold dark:text-white">الغياب: {abs}/{max}</span><div className="flex gap-1"><button onClick={()=>updateAbsence(c,-1)} className="px-2 border rounded bg-white dark:bg-dark-card dark:text-white">-</button><button onClick={()=>updateAbsence(c,1)} className="px-2 border rounded bg-indigo-50 text-indigo-600">+</button></div></div>
                                     <div className="h-1.5 w-full bg-slate-200 dark:bg-dark-border rounded-full overflow-hidden"><div className={`h-full ${isDanger?'bg-red-500':isWarning?'bg-orange-500':'bg-indigo-500'}`} style={{width:`${Math.min((abs/max)*100,100)}%`}}></div></div>
@@ -354,130 +434,109 @@
             );
         };
 
-        // --- Tasks, Exams, Training, Home (Keeping them concise but functional with new UIContext) ---
-        const TasksView = ({user}) => {
-            const [tasks, setTasks] = useState([]); const [newTask, setNewTask] = useState(''); const { showToast, showConfirm } = useUI();
-            useEffect(() => { return window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db,"tasks"),window.fb.where("uid","==",user.uid)), s=>{setTasks(s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAt?.seconds-a.createdAt?.seconds)); setTimeout(()=>window.lucide.createIcons(),100);}); }, [user]);
-            const add = async (e) => { e.preventDefault(); if(newTask){ await window.fb.addDoc(window.fb.collection(window.fb.db,"tasks"),{uid:user.uid,title:sanitize(newTask),completed:!1,createdAt:new Date()}); setNewTask(''); showToast("تم إضافة المهمة"); } };
-            const del = (id) => showConfirm("حذف المهمة؟", async()=>{ await window.fb.deleteDoc(window.fb.doc(window.fb.db,"tasks",id)); showToast("تم الحذف","error"); });
-            return (<div className="max-w-2xl mx-auto space-y-6 animate-fade-in"><h2 className="text-2xl font-bold dark:text-white">المهام</h2><form onSubmit={add} className="relative"><input className="w-full h-12 pl-12 pr-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white" value={newTask} onChange={e=>setNewTask(e.target.value)} placeholder="مهمة جديدة..." /><button className="absolute left-3 top-3"><i data-lucide="plus" className="text-indigo-600"></i></button></form><div className="space-y-2">{tasks.map(t=>(<div key={t.id} className={`flex items-center gap-3 p-3 border rounded-xl ${t.completed?'opacity-50 bg-slate-50 dark:bg-dark-bg':'bg-white dark:bg-dark-card dark:border-dark-border'}`}><button onClick={()=>window.fb.updateDoc(window.fb.doc(window.fb.db,"tasks",t.id),{completed:!t.completed})} className={`w-5 h-5 rounded-full border flex items-center justify-center ${t.completed?'bg-green-500 border-green-500':''}`}>{t.completed&&<i data-lucide="check" className="w-3 text-white"/>}</button><span className={`flex-1 ${t.completed?'line-through':''} dark:text-white`}>{t.title}</span><button onClick={()=>del(t.id)}><i data-lucide="trash-2" className="w-4 text-slate-300 hover:text-red-500"/></button></div>))}</div></div>);
-        };
+        // --- 6. Tasks View ---
+        const TasksView = ({ user }) => {
+            const [tasks, setTasks] = useState([]);
+            const [newTask, setNewTask] = useState('');
+            const [loading, setLoading] = useState(true);
+            useEffect(() => {
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid)), s => {
+                    setTasks(s.docs.map(doc => ({id:doc.id, ...doc.data()})).sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
+                }); return () => unsub();
+            }, [user]);
+            const add = async (e) => { e.preventDefault(); if(newTask) await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), {uid:user.uid, title:sanitize(newTask), completed:!1, createdAt:new Date()}); setNewTask(''); };
+            const toggle = async (t) => await window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", t.id), {completed: !t.completed});
+            const del = async (id) => await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
 
-        // ... (ExamsView & TrainingView - Same as Diamond Version but using showToast/showConfirm instead of alert) ...
-        // Re-implementing TrainingView briefly for context integration
-        const TrainingView = ({user}) => {
-            const [viewMode, setViewMode] = useState('list'); const [exams, setExams] = useState([]); const { showToast, showConfirm } = useUI(); const isAdmin = user.email===ADMIN_EMAIL;
-            useEffect(()=>{ return window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db,"practice_exams")),s=>{setExams(s.docs.map(d=>({id:d.id,...d.data()}))); setTimeout(()=>window.lucide.createIcons(),100);});},[]);
-            const deleteExam = (id) => showConfirm("حذف النموذج؟", async()=>{ await window.fb.deleteDoc(window.fb.doc(window.fb.db,"practice_exams",id)); showToast("تم الحذف","error"); });
-            // ... (Simplified render for brevity, but assume logic is same as Diamond version)
             return (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="flex justify-between items-center"><h2 className="text-2xl font-bold dark:text-white">النماذج</h2>{isAdmin&&<button onClick={()=>alert('Use Diamond logic for Create')} className="bg-indigo-600 text-white px-3 py-1 rounded-lg">إضافة</button>}</div>
-                    <div className="grid md:grid-cols-2 gap-4">{exams.map(e=>(<div key={e.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border shadow-sm"><div><h3 className="font-bold dark:text-white">{e.title}</h3><p className="text-xs text-slate-500">{e.questions?.length||0} سؤال</p></div>{isAdmin&&<button onClick={()=>deleteExam(e.id)} className="text-red-500 mt-2"><i data-lucide="trash-2" className="w-4"></i></button>}</div>))}</div>
+                <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+                    <h2 className="text-2xl font-bold dark:text-white">المهام</h2>
+                    <form onSubmit={add} className="relative"><input className="w-full h-12 pl-12 pr-4 border rounded-xl dark:bg-dark-input dark:border-dark-border dark:text-white" value={newTask} onChange={e=>setNewTask(e.target.value)} placeholder="مهمة جديدة..." /><button className="absolute left-3 top-3"><i data-lucide="plus" className="text-indigo-600"></i></button></form>
+                    <div className="space-y-2">{tasks.map(t=>(<div key={t.id} className={`flex items-center gap-3 p-3 border rounded-xl ${t.completed?'opacity-50 bg-slate-50 dark:bg-dark-bg':'bg-white dark:bg-dark-card dark:border-dark-border'}`}><button onClick={()=>toggle(t)} className={`w-5 h-5 rounded-full border flex items-center justify-center ${t.completed?'bg-green-500 border-green-500':''}`}>{t.completed&&<i data-lucide="check" className="w-3 text-white"/>}</button><span className={`flex-1 ${t.completed?'line-through':''} dark:text-white`}>{t.title}</span><button onClick={()=>del(t.id)}><i data-lucide="trash-2" className="w-4 text-slate-300 hover:text-red-500"/></button></div>))}</div>
                 </div>
             );
         };
 
-        const ExamsView = ({user}) => {
-            const [exams, setExams] = useState([]); const [newExam, setNewExam] = useState({subject:'', type:'Final', date:'', location:''}); const { showToast, showConfirm } = useUI();
-            useEffect(()=>{ return window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db,"exams"),window.fb.where("uid","==",user.uid)),s=>{setExams(s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(a.date)-new Date(b.date))); setTimeout(()=>window.lucide.createIcons(),100);});},[user]);
-            const add = async(e)=>{e.preventDefault(); if(newExam.subject){ await window.fb.addDoc(window.fb.collection(window.fb.db,"exams"),{uid:user.uid,...newExam,createdAt:new Date()}); setNewExam({subject:'',type:'Final',date:'',location:''}); showToast("تمت الإضافة");}};
-            const del = (id)=>showConfirm("حذف؟",async()=>{await window.fb.deleteDoc(window.fb.doc(window.fb.db,"exams",id)); showToast("تم الحذف","error");});
-            return (
-                <div className="space-y-6 animate-fade-in"><div className="flex justify-between"><h2 className="text-2xl font-bold dark:text-white">الامتحانات</h2><span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{exams.length} قادمة</span></div><div className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border"><form onSubmit={add} className="grid grid-cols-2 md:grid-cols-5 gap-3"><input className="col-span-2 md:col-span-2 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="المادة" value={newExam.subject} onChange={e=>setNewExam({...newExam,subject:e.target.value})}/><select className="w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-input dark:border-dark-border dark:text-white" value={newExam.type} onChange={e=>setNewExam({...newExam,type:e.target.value})}><option>Final</option><option>Midterm</option><option>Quiz</option></select><input type="datetime-local" className="col-span-2 md:col-span-1 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" value={newExam.date} onChange={e=>setNewExam({...newExam,date:e.target.value})}/><input className="w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="القاعة" value={newExam.location} onChange={e=>setNewExam({...newExam,location:e.target.value})}/><button className="col-span-2 md:col-span-5 h-11 bg-red-600 text-white rounded-lg font-bold">حفظ</button></form></div><div className="grid md:grid-cols-2 gap-4">{exams.map(x=><div key={x.id} className="p-5 rounded-xl border dark:border-dark-border bg-white dark:bg-dark-card shadow-sm"><div className="flex justify-between mb-2"><h3 className="font-bold dark:text-white">{x.subject}</h3><button onClick={()=>del(x.id)} className="text-red-500"><i data-lucide="trash-2" className="w-4"></i></button></div><div className="text-sm text-slate-500">{new Date(x.date).toLocaleString()}</div></div>)}</div></div>
-            );
-        };
+        // --- 7. Home View ---
+        const HomeView = ({ user, setTab }) => {
+            const [stats, setStats] = useState({ courses: 0, tasks: 0 });
+            const [nextExam, setNextExam] = useState(null);
+            useEffect(() => {
+                const u1 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), s => setStats(p => ({...p, courses: s.size})));
+                const u2 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid), window.fb.where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
+                const u3 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), s => { const e = s.docs.map(d=>d.data()).filter(x=>new Date(x.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)); setNextExam(e[0]); });
+                return () => { u1(); u2(); u3(); };
+            }, [user]);
 
-        const HomeView = ({user, setTab}) => {
-            const [stats, setStats] = useState({c:0, t:0}); const [nextExam, setNextExam] = useState(null);
-            useEffect(()=>{
-                const u1=window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db,"courses"),window.fb.where("uid","==",user.uid)),s=>setStats(p=>({...p,c:s.size})));
-                const u2=window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db,"tasks"),window.fb.where("uid","==",user.uid),window.fb.where("completed","==",!1)),s=>setStats(p=>({...p,t:s.size})));
-                const u3=window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db,"exams"),window.fb.where("uid","==",user.uid)),s=>{const e=s.docs.map(d=>d.data()).filter(x=>new Date(x.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date));setNextExam(e[0]);});
-                return ()=>{u1();u2();u3();};
-            },[user]);
             return (
                 <div className="space-y-8 animate-fade-in">
-                    <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden"><div className="relative z-10"><h1 className="text-3xl font-bold mb-2">أهلاً {user.displayName} 👋</h1><p className="opacity-90">يوم موفق!</p></div></div>
-                    {nextExam && <div onClick={()=>setTab('exams')} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex justify-between items-center cursor-pointer"><div className="flex gap-3 items-center"><i data-lucide="alarm-clock" className="text-red-600 w-6 h-6"></i><div><p className="text-xs text-red-800 dark:text-red-300 font-bold">القادم</p><p className="font-bold dark:text-white">{nextExam.subject}</p></div></div><div className="text-2xl font-bold dark:text-white">{Math.ceil((new Date(nextExam.date)-new Date())/(1000*60*60*24))} يوم</div></div>}
+                    <div className="bg-indigo-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+                        <div className="relative z-10"><h1 className="text-3xl font-bold mb-2">مرحباً {user.displayName || "بك"} 👋</h1><p className="text-indigo-100 opacity-90">استغل وقتك جيداً اليوم!</p></div>
+                        <i data-lucide="award" className="absolute left-4 bottom-[-20px] w-32 h-32 text-white opacity-10 transform rotate-12"></i>
+                    </div>
+                    {nextExam && <div onClick={()=>setTab('exams')} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-red-100 transition"><div className="flex items-center gap-3"><div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 animate-pulse-slow"><i data-lucide="alarm-clock" className="w-6 h-6"></i></div><div><div className="text-red-800 dark:text-red-300 font-bold text-sm uppercase tracking-wider">الامتحان القادم</div><div className="text-slate-900 dark:text-white font-bold text-lg">{nextExam.subject} <span className="text-sm font-normal">({nextExam.type})</span></div></div></div><div className="text-left"><div className="text-2xl font-bold font-mono text-slate-800 dark:text-white">{Math.ceil((new Date(nextExam.date) - new Date()) / (1000 * 60 * 60 * 24))}</div><div className="text-[10px] uppercase font-bold text-slate-500">أيام متبقية</div></div></div>}
                     <PomodoroTimer />
-                    <div className="grid md:grid-cols-2 gap-6"><div onClick={()=>setTab('courses')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border dark:border-dark-border shadow-sm cursor-pointer"><span className="text-4xl font-bold dark:text-white">{stats.c}</span><h3 className="text-slate-500 font-bold">مواد</h3></div><div onClick={()=>setTab('tasks')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border dark:border-dark-border shadow-sm cursor-pointer"><span className="text-4xl font-bold dark:text-white">{stats.t}</span><h3 className="text-slate-500 font-bold">مهام</h3></div></div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div onClick={()=>setTab('courses')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border dark:border-dark-border shadow-sm cursor-pointer hover:shadow-md transition"><div className="flex justify-between items-center mb-4"><div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><i data-lucide="book-open" className="w-8 h-8 text-blue-600 dark:text-blue-400"></i></div><span className="text-4xl font-bold dark:text-white">{stats.courses}</span></div><h3 className="text-slate-500 dark:text-dark-muted font-bold">مواد مسجلة</h3></div>
+                        <div onClick={()=>setTab('tasks')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border dark:border-dark-border shadow-sm cursor-pointer hover:shadow-md transition"><div className="flex justify-between items-center mb-4"><div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-xl"><i data-lucide="check-square" className="w-8 h-8 text-orange-600 dark:text-orange-400"></i></div><span className="text-4xl font-bold dark:text-white">{stats.tasks}</span></div><h3 className="text-slate-500 dark:text-dark-muted font-bold">مهام قيد الانتظار</h3></div>
+                    </div>
                 </div>
             );
         };
 
-        // --- Dashboard & App (Integration) ---
+        // --- 8. Dashboard Layout (Classic Icons) ---
         const Dashboard = ({ user }) => {
             const [activeTab, setActiveTab] = useState('home');
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
             const [showNameModal, setShowNameModal] = useState(false);
             const [newName, setNewName] = useState('');
-            const [showBroadcastModal, setShowBroadcastModal] = useState(false);
-            const [broadcastMsg, setBroadcastMsg] = useState('');
-            const { showToast, showConfirm } = useUI();
-            const isAdmin = user.email === ADMIN_EMAIL;
 
             useEffect(() => { if(darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); localStorage.setItem('theme', darkMode ? 'dark' : 'light'); }, [darkMode]);
             useEffect(() => { setTimeout(() => window.lucide.createIcons(), 50); }, [activeTab, showMobileMenu]);
+            
+            // Check for username
             useEffect(() => { if (!user.displayName) setShowNameModal(true); }, [user]);
 
-            const saveUsername = async () => { if(!newName.trim()) return; await window.fb.updateProfile(user, { displayName: sanitize(newName) }); await window.fb.setDoc(window.fb.doc(window.fb.db, "users", user.uid), { username: sanitize(newName) }, { merge: true }); setShowNameModal(false); };
-            const sendBroadcast = async () => { if(!broadcastMsg) return; await window.fb.addDoc(window.fb.collection(window.fb.db, "broadcasts"), { message: sanitize(broadcastMsg), timestamp: new Date(), active: true }); setBroadcastMsg(''); setShowBroadcastModal(false); showToast("تم إرسال التحديث"); };
+            const saveUsername = async () => {
+                if(!newName.trim()) return;
+                await window.fb.updateProfile(user, { displayName: sanitize(newName) });
+                // Also save to a users collection for leaderboard queries
+                await window.fb.setDoc(window.fb.doc(window.fb.db, "users", user.uid), { username: sanitize(newName) }, { merge: true });
+                setShowNameModal(false);
+            };
 
-            const NavItem = ({ id, icon, label }) => ( <button onClick={() => { setActiveTab(id); setShowMobileMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-bg'}`}><i data-lucide={icon} className="w-5 h-5"></i><span>{label}</span></button> );
+            const NavItem = ({ id, icon, label }) => ( <button onClick={() => { setActiveTab(id); setShowMobileMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-bg dark:hover:text-white'}`}><i data-lucide={icon} className="w-5 h-5"></i><span>{label}</span></button> );
 
             return (
                 <div className="min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors flex">
-                    <BroadcastOverlay />
-                    {/* Broadcast Modal (Admin) */}
-                    {showBroadcastModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl w-full max-w-sm">
-                                <h3 className="font-bold mb-4 dark:text-white">إرسال تحديث عام</h3>
-                                <textarea className="w-full p-3 border rounded-xl mb-4 dark:bg-dark-input dark:text-white" rows="3" placeholder="الرسالة..." value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)}></textarea>
-                                <div className="flex gap-2"><button onClick={sendBroadcast} className="flex-1 bg-red-600 text-white py-2 rounded-xl">إرسال</button><button onClick={()=>setShowBroadcastModal(false)} className="flex-1 bg-slate-200 text-slate-800 py-2 rounded-xl">إلغاء</button></div>
+                    {/* Username Modal */}
+                    {showNameModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-xl w-full max-w-sm text-center border dark:border-dark-border">
+                                <h3 className="text-xl font-bold mb-2 dark:text-white">أهلاً بك! 👋</h3>
+                                <p className="text-slate-500 mb-4 text-sm">من فضلك اكتب اسمك ليظهر في لوحة الأوائل</p>
+                                <input className="w-full p-3 border rounded-xl mb-4 dark:bg-dark-input dark:border-dark-border dark:text-white outline-none" placeholder="اسمك الثلاثي" value={newName} onChange={e=>setNewName(e.target.value)} />
+                                <button onClick={saveUsername} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">حفظ ومتابعة</button>
                             </div>
                         </div>
                     )}
-                    {/* Username Modal */}
-                    {showNameModal && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"><div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-xl w-full max-w-sm text-center border dark:border-dark-border"><h3 className="text-xl font-bold mb-2 dark:text-white">أهلاً بك!</h3><input className="w-full p-3 border rounded-xl mb-4 dark:bg-dark-input dark:text-white" placeholder="اسمك" value={newName} onChange={e=>setNewName(e.target.value)} /><button onClick={saveUsername} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">حفظ</button></div></div>)}
 
                     <aside className="hidden md:flex flex-col w-72 bg-white dark:bg-dark-card border-l dark:border-dark-border p-6 shadow-sm z-50 sticky top-0 h-screen">
-                        <div className="flex items-center gap-3 px-2 mb-10"><div className="bg-indigo-600 p-2 rounded-lg shadow-lg"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div><span className="font-bold text-2xl text-slate-800 dark:text-white">جامعتي</span></div>
+                        <div className="flex items-center gap-3 px-2 mb-10"><div className="bg-indigo-600 p-2 rounded-lg shadow-lg"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div><span className="font-bold text-2xl text-slate-800 dark:text-white tracking-tight">جامعتي</span></div>
                         <nav className="flex-1 space-y-2">
                             <NavItem id="home" icon="layout-grid" label="الرئيسية" />
-                            <NavItem id="forum" icon="messages-square" label="المنتدى" />
                             <NavItem id="training" icon="file-question" label="نماذج التدريب" />
                             <NavItem id="exams" icon="alarm-clock" label="غرفة الامتحانات" />
-                            <NavItem id="courses" icon="book-open" label="المواد" />
+                            <NavItem id="courses" icon="book-open" label="المواد والدرجات" />
                             <NavItem id="tasks" icon="list-todo" label="المهام" />
                         </nav>
-                        <div className="pt-6 border-t dark:border-dark-border space-y-3">
-                            {isAdmin && <button onClick={()=>setShowBroadcastModal(true)} className="w-full flex items-center gap-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl font-bold"><i data-lucide="megaphone" className="w-5 h-5"></i> تحديث</button>}
-                            <button onClick={()=>setDarkMode(!darkMode)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-dark-bg rounded-xl font-bold dark:text-white"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5"></i>{darkMode?'نهاري':'ليلي'}</button>
-                            <button onClick={()=>{showConfirm('خروج؟', ()=>window.fb.signOut(window.fb.auth))}} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button>
-                        </div>
+                        <div className="pt-6 border-t dark:border-dark-border space-y-3"><button onClick={()=>setDarkMode(!darkMode)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-dark-bg rounded-xl font-bold dark:text-white"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5"></i>{darkMode?'نهاري':'ليلي'}</button><button onClick={()=>{if(confirm('خروج؟'))window.fb.signOut(window.fb.auth)}} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>
                     </aside>
                     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                        <header className="bg-white dark:bg-dark-card border-b dark:border-dark-border p-4 flex justify-between items-center z-50 sticky top-0 shadow-sm">
-                            <div className="flex items-center gap-2 md:hidden"><i data-lucide="graduation-cap" className="text-indigo-600 dark:text-indigo-400 w-6 h-6"></i><span className="font-bold text-lg text-slate-800 dark:text-white">جامعتي</span></div>
-                            <div className="hidden md:block font-bold text-lg dark:text-white">لوحة التحكم</div>
-                            <div className="flex gap-2 items-center">
-                                <NotificationBell user={user} />
-                                <button onClick={()=>setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5 dark:text-white"></i></button>
-                                <button onClick={()=>setShowMobileMenu(!showMobileMenu)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg md:hidden"><i data-lucide={showMobileMenu?"x":"menu"} className="w-6 h-6 dark:text-white"></i></button>
-                            </div>
-                        </header>
-                        {showMobileMenu && <div className="md:hidden fixed inset-0 top-[60px] bg-white dark:bg-dark-card z-40 p-4 space-y-2 animate-in slide-in-from-top-2 border-t dark:border-dark-border"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="forum" icon="messages-square" label="المنتدى" /><NavItem id="training" icon="file-question" label="نماذج التدريب" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /><div className="h-px bg-slate-100 dark:bg-dark-border my-4"></div>{isAdmin && <button onClick={()=>setShowBroadcastModal(true)} className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-bold mb-2"><i data-lucide="megaphone" className="w-5 h-5"></i> تحديث</button>}<button onClick={()=>window.fb.signOut(window.fb.auth)} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>}
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-20"><div className="max-w-5xl mx-auto">
-                            {activeTab === 'home' && <HomeView user={user} setTab={setActiveTab} />}
-                            {activeTab === 'forum' && <ForumView user={user} />}
-                            {activeTab === 'training' && <TrainingView user={user} />}
-                            {activeTab === 'exams' && <ExamsView user={user} />}
-                            {activeTab === 'courses' && <CoursesView user={user} />}
-                            {activeTab === 'tasks' && <TasksView user={user} />}
-                        </div></main>
+                        <header className="md:hidden bg-white dark:bg-dark-card border-b dark:border-dark-border p-4 flex justify-between items-center z-50 sticky top-0 shadow-sm"><div className="flex items-center gap-2"><i data-lucide="graduation-cap" className="text-indigo-600 dark:text-indigo-400 w-6 h-6"></i><span className="font-bold text-lg text-slate-800 dark:text-white">جامعتي</span></div><div className="flex gap-2"><button onClick={()=>setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5 dark:text-white"></i></button><button onClick={()=>setShowMobileMenu(!showMobileMenu)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={showMobileMenu?"x":"menu"} className="w-6 h-6 dark:text-white"></i></button></div></header>
+                        {showMobileMenu && <div className="md:hidden fixed inset-0 top-[60px] bg-white dark:bg-dark-card z-40 p-4 space-y-2 animate-in slide-in-from-top-2 border-t dark:border-dark-border"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="training" icon="file-question" label="نماذج التدريب" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /><div className="h-px bg-slate-100 dark:bg-dark-border my-4"></div><button onClick={()=>window.fb.signOut(window.fb.auth)} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>}
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-20"><div className="max-w-5xl mx-auto">{activeTab==='home'&&<HomeView user={user} setTab={setActiveTab}/>}{activeTab==='training'&&<TrainingView user={user}/>}{activeTab==='exams'&&<ExamsView user={user}/>}{activeTab==='courses'&&<CoursesView user={user}/>}{activeTab==='tasks'&&<TasksView user={user}/>}</div></main>
                     </div>
                 </div>
             );
@@ -486,12 +545,7 @@
         const App = () => {
             const [user, setUser] = useState(null); const [ready, setReady] = useState(false);
             useEffect(() => { const init = () => { if (window.fb) { setReady(true); window.fb.onAuthStateChanged(window.fb.auth, setUser); } }; if (window.fb) init(); else window.addEventListener('firebase-ready', init); }, []);
-            if(!ready) return <Loading />; 
-            return (
-                <UIProvider>
-                    {user ? <Dashboard user={user} /> : <AuthScreen />}
-                </UIProvider>
-            );
+            if(!ready) return <Loading />; return user ? <Dashboard user={user} /> : <AuthScreen />;
         };
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
