@@ -3,54 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جامعتي - بوابتي الجامعية</title>
+    <title>جامعتي - النظام المتكامل</title>
     
-    <!-- React Core -->
+    <!-- React & DOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Lucide Icons -->
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+
+    <!-- Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',      // Slate 900
+                            card: '#1e293b',    // Slate 800
+                            border: '#334155',  // Slate 700
+                            text: '#f8fafc',    // Slate 50
+                            muted: '#94a3b8'    // Slate 400
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'bounce-slow': 'bounce 3s infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; }
-        /* Custom Loader */
+        body { font-family: 'Tajawal', sans-serif; transition: background-color 0.3s, color 0.3s; }
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e2e8f0;
-            border-top: 4px solid #4f46e5;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            width: 40px; height: 40px; border: 4px solid #e2e8f0;
+            border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Scrollbar styling */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #c7c7c7; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text selection:bg-indigo-500 selection:text-white">
     <div id="root"></div>
 
-    <!-- Firebase Setup (Module) -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // إعدادات Firebase الخاصة بك
         const firebaseConfig = {
             apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
             authDomain: "myeduplatform-fe0eb.firebaseapp.com",
@@ -65,35 +89,23 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // جعل وظائف Firebase متاحة لـ React
-        window.fb = {
-            auth, db, 
-            signInWithEmailAndPassword, 
-            createUserWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged,
-            collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc
-        };
-        
-        // إشعار React بأن Firebase جاهز
+        window.fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
     <!-- React Application -->
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-        
-        // --- Components ---
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // 1. شاشة التحميل
+        // --- Shared Components ---
         const Loading = () => (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4">
                 <div className="spinner"></div>
-                <p className="text-slate-500 font-medium">جاري الاتصال...</p>
+                <p className="text-slate-500 dark:text-dark-muted font-medium">جاري التحميل...</p>
             </div>
         );
 
-        // 2. شاشة الدخول / التسجيل
+        // --- 1. Auth Screen ---
         const AuthScreen = () => {
             const [isRegister, setIsRegister] = useState(false);
             const [email, setEmail] = useState('');
@@ -103,161 +115,224 @@
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setError('');
-                setLoading(true);
-                const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
-
+                setError(''); setLoading(true);
                 try {
-                    if (isRegister) {
-                        await createUserWithEmailAndPassword(auth, email, password);
-                    } else {
-                        await signInWithEmailAndPassword(auth, email, password);
-                    }
+                    const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
+                    if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
+                    else await signInWithEmailAndPassword(auth, email, password);
                 } catch (err) {
-                    let msg = "حدث خطأ غير متوقع";
-                    if(err.code.includes('invalid-email')) msg = "البريد الإلكتروني غير صحيح";
-                    if(err.code.includes('wrong-password')) msg = "كلمة المرور خاطئة";
-                    if(err.code.includes('user-not-found')) msg = "المستخدم غير موجود";
-                    if(err.code.includes('email-already-in-use')) msg = "البريد مسجل مسبقاً";
-                    if(err.code.includes('weak-password')) msg = "كلمة المرور ضعيفة (6 أحرف على الأقل)";
-                    setError(msg);
-                } finally {
-                    setLoading(false);
-                }
+                    setError("تأكد من صحة البيانات أو الاتصال بالإنترنت.");
+                } finally { setLoading(false); }
             };
 
             return (
-                <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                    <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
+                <div className="min-h-screen bg-slate-100 dark:bg-dark-bg flex items-center justify-center p-4 transition-colors">
+                    <div className="bg-white dark:bg-dark-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border dark:border-dark-border">
                         <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-full bg-white opacity-5 transform -skew-y-6 scale-150"></div>
+                            <div className="absolute inset-0 bg-white/5 transform skew-y-6 scale-150"></div>
                             <i data-lucide="graduation-cap" className="w-14 h-14 text-white mx-auto mb-3 relative z-10"></i>
                             <h1 className="text-2xl font-bold text-white relative z-10">جامعتي</h1>
-                            <p className="text-indigo-100 text-sm relative z-10">بوابتك لتنظيم حياتك الدراسية</p>
+                            <p className="text-indigo-100 text-sm relative z-10">بوابتك الذكية للحياة الجامعية</p>
                         </div>
                         <div className="p-8">
-                            <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">
-                                {isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}
-                            </h2>
-                            
-                            {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm mb-4 border border-red-100 flex items-center gap-2"><i data-lucide="alert-circle" className="w-4 h-4"></i>{error}</div>}
-
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
+                            {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm mb-4 border border-red-100 dark:border-red-900 flex items-center gap-2"><i data-lucide="alert-circle" className="w-4 h-4"></i>{error}</div>}
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">البريد الإلكتروني</label>
-                                    <input type="email" required className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" 
-                                           value={email} onChange={e => setEmail(e.target.value)} placeholder="name@university.edu" />
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-dark-muted mb-1">البريد الإلكتروني</label>
+                                    <input type="email" required className="w-full px-4 py-3 border border-slate-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-dark-bg dark:text-white outline-none transition" value={email} onChange={e => setEmail(e.target.value)} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">كلمة المرور</label>
-                                    <input type="password" required className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition" 
-                                           value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••" />
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-dark-muted mb-1">كلمة المرور</label>
+                                    <input type="password" required className="w-full px-4 py-3 border border-slate-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-dark-bg dark:text-white outline-none transition" value={password} onChange={e => setPassword(e.target.value)} />
                                 </div>
-                                <button disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition disabled:opacity-70 disabled:scale-100 flex justify-center items-center gap-2">
-                                    {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (isRegister ? 'تسجيل جديد' : 'دخول')}
+                                <button disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2">
+                                    {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل جديد' : 'دخول')}
                                 </button>
                             </form>
-
-                            <div className="mt-6 text-center">
-                                <button onClick={() => {setIsRegister(!isRegister); setError('');}} className="text-indigo-600 text-sm hover:text-indigo-800 font-medium transition">
-                                    {isRegister ? 'لديك حساب بالفعل؟ سجل دخول' : 'ليس لديك حساب؟ أنشئ حساباً مجاناً'}
-                                </button>
-                            </div>
+                            <button onClick={() => {setIsRegister(!isRegister); setError('');}} className="mt-6 w-full text-indigo-600 dark:text-indigo-400 text-sm hover:underline font-medium transition">
+                                {isRegister ? 'لديك حساب بالفعل؟ سجل دخول' : 'ليس لديك حساب؟ أنشئ حساباً مجاناً'}
+                            </button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // 3. مكونات التطبيق الداخلية
+        // --- 2. Feature: Pomodoro Timer (New) ---
+        const PomodoroTimer = () => {
+            const [timeLeft, setTimeLeft] = useState(25 * 60);
+            const [isActive, setIsActive] = useState(false);
+            const [mode, setMode] = useState('focus'); // focus | break
 
-        // --- عرض المواد والحضور (المحدث) ---
+            useEffect(() => {
+                let interval = null;
+                if (isActive && timeLeft > 0) {
+                    interval = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
+                } else if (timeLeft === 0) {
+                    setIsActive(false);
+                    new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(()=>{});
+                    alert(mode === 'focus' ? "انتهى وقت التركيز! استرح قليلاً" : "انتهت الراحة! عد للعمل");
+                }
+                return () => clearInterval(interval);
+            }, [isActive, timeLeft, mode]);
+
+            const toggleTimer = () => setIsActive(!isActive);
+            const resetTimer = () => { setIsActive(false); setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60); };
+            const switchMode = (m) => { setMode(m); setIsActive(false); setTimeLeft(m === 'focus' ? 25 * 60 : 5 * 60); };
+            const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+
+            return (
+                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-dark-border mb-8 animate-fade-in relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                    <div className="flex justify-between items-center mb-6 relative z-10">
+                        <h3 className="font-bold text-lg dark:text-white flex items-center gap-2"><i data-lucide="timer" className="w-5 h-5 text-indigo-500"></i> مؤقت الإنجاز</h3>
+                        <div className="flex bg-slate-100 dark:bg-dark-bg p-1 rounded-lg">
+                            <button onClick={()=>switchMode('focus')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${mode==='focus'?'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm':'text-slate-500 dark:text-dark-muted'}`}>مذاكرة</button>
+                            <button onClick={()=>switchMode('break')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${mode==='break'?'bg-white dark:bg-emerald-600 text-emerald-600 dark:text-white shadow-sm':'text-slate-500 dark:text-dark-muted'}`}>راحة</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center relative z-10">
+                        <div className="text-7xl font-bold font-mono text-slate-800 dark:text-white mb-6 tracking-tighter">{formatTime(timeLeft)}</div>
+                        <div className="flex gap-4">
+                            <button onClick={toggleTimer} className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition transform active:scale-95 ${isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                                <i data-lucide={isActive ? "pause" : "play"} className="w-6 h-6 fill-current"></i>
+                            </button>
+                            <button onClick={resetTimer} className="w-14 h-14 rounded-full bg-slate-100 dark:bg-dark-bg text-slate-600 dark:text-dark-muted flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                                <i data-lucide="rotate-ccw" className="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 3. Courses View (Supercharged with GPA & Attendance) ---
         const CoursesView = ({ user }) => {
             const [courses, setCourses] = useState([]);
             const [loading, setLoading] = useState(true);
-            const [newCourse, setNewCourse] = useState({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4 }); 
             const [isAdding, setIsAdding] = useState(false);
+            
+            // New State Structure covering both Needs
+            const [newCourse, setNewCourse] = useState({ 
+                name: '', doctor: '', day: 'الأحد', time: '', 
+                maxAbsence: 4, credits: 3, grade: '' // New Fields
+            });
+
+            // Grade Values
+            const gradePoints = { 'A+': 4.0, 'A': 3.75, 'B+': 3.5, 'B': 3.0, 'C+': 2.5, 'C': 2.0, 'D+': 1.5, 'D': 1.0, 'F': 0 };
 
             useEffect(() => {
-                const { db, collection, query, where, onSnapshot } = window.fb;
-                const q = query(collection(db, "courses"), where("uid", "==", user.uid));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    setCourses(data);
+                const q = window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid));
+                const unsub = window.fb.onSnapshot(q, (s) => {
+                    setCourses(s.docs.map(doc => ({ id: doc.id, ...doc.data() })));
                     setLoading(false);
                     setTimeout(() => window.lucide.createIcons(), 100);
                 });
-                return () => unsubscribe();
+                return () => unsub();
             }, [user]);
+
+            // Calculate GPA
+            const gpa = useMemo(() => {
+                let totalPts = 0, totalCr = 0;
+                courses.forEach(c => {
+                    if (c.grade && gradePoints[c.grade] !== undefined) {
+                        const cr = parseFloat(c.credits || 0);
+                        totalPts += gradePoints[c.grade] * cr;
+                        totalCr += cr;
+                    }
+                });
+                return totalCr === 0 ? "0.00" : (totalPts / totalCr).toFixed(2);
+            }, [courses]);
 
             const handleAdd = async (e) => {
                 e.preventDefault();
                 if(!newCourse.name) return;
                 setIsAdding(true);
-                const { db, collection, addDoc } = window.fb;
                 try {
-                    await addDoc(collection(db, "courses"), {
+                    await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), {
                         uid: user.uid,
                         ...newCourse,
                         absences: 0, 
                         createdAt: new Date()
                     });
-                    setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4 });
-                } catch (error) {
-                    console.error("Error:", error);
-                } finally {
-                    setIsAdding(false);
-                }
+                    setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' });
+                } catch (error) { console.error(error); } 
+                finally { setIsAdding(false); }
             };
 
             const updateAbsence = async (course, change) => {
                 const newVal = (course.absences || 0) + change;
                 if(newVal < 0) return;
-                const { db, doc, updateDoc } = window.fb;
-                await updateDoc(doc(db, "courses", course.id), { absences: newVal });
+                await window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", course.id), { absences: newVal });
             };
 
             const handleDelete = async (id) => {
-                if(!confirm("هل أنت متأكد من حذف المادة؟")) return;
-                const { db, doc, deleteDoc } = window.fb;
-                await deleteDoc(doc(db, "courses", id));
+                if(confirm("هل أنت متأكد من حذف المادة؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id));
             };
 
             return (
                 <div className="space-y-6 animate-fade-in">
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-slate-800">المواد والحضور</h2>
-                        <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">{courses.length} مواد</span>
+                    {/* Header with GPA Card */}
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">المواد الدراسية</h2>
+                            <p className="text-slate-500 dark:text-dark-muted text-sm mt-1">تتبع الحضور والدرجات في مكان واحد</p>
+                        </div>
+                        
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-3 rounded-2xl shadow-lg flex items-center gap-4">
+                            <div>
+                                <div className="text-xs opacity-80 font-bold uppercase tracking-wider">المعدل التراكمي</div>
+                                <div className="text-2xl font-bold font-mono">{gpa}</div>
+                            </div>
+                            <div className="h-10 w-px bg-white/20"></div>
+                            <div className="text-center">
+                                <div className="text-xs opacity-80 font-bold">المواد</div>
+                                <div className="text-xl font-bold">{courses.length}</div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* نموذج الإضافة */}
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 className="font-bold text-slate-700 mb-4 text-sm flex items-center gap-2"><i data-lucide="plus-circle" className="w-4 h-4"></i> إضافة مادة جديدة</h3>
-                        <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                            <div className="md:col-span-4">
-                                <input className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="اسم المادة" required value={newCourse.name} onChange={e => setNewCourse({...newCourse, name: e.target.value})} />
+                    {/* Add Form (Expanded) */}
+                    <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-dark-border">
+                        <h3 className="font-bold text-slate-700 dark:text-white mb-4 text-sm flex items-center gap-2"><i data-lucide="plus-circle" className="w-4 h-4"></i> إضافة مادة جديدة</h3>
+                        <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-12 gap-3">
+                            <div className="col-span-2 md:col-span-3">
+                                <input className="w-full px-3 py-2 border border-slate-200 dark:border-dark-border rounded-lg dark:bg-dark-bg dark:text-white outline-none focus:border-indigo-500" placeholder="اسم المادة" required value={newCourse.name} onChange={e => setNewCourse({...newCourse, name: e.target.value})} />
                             </div>
-                            <div className="md:col-span-3">
-                                <input className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="المحاضر" value={newCourse.doctor} onChange={e => setNewCourse({...newCourse, doctor: e.target.value})} />
+                            <div className="col-span-2 md:col-span-2">
+                                <input className="w-full px-3 py-2 border border-slate-200 dark:border-dark-border rounded-lg dark:bg-dark-bg dark:text-white outline-none focus:border-indigo-500" placeholder="المحاضر" value={newCourse.doctor} onChange={e => setNewCourse({...newCourse, doctor: e.target.value})} />
                             </div>
-                            <div className="md:col-span-2">
-                                <select className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-white outline-none" value={newCourse.day} onChange={e => setNewCourse({...newCourse, day: e.target.value})}>
+                            <div className="col-span-1 md:col-span-2">
+                                <select className="w-full px-3 py-2 border border-slate-200 dark:border-dark-border rounded-lg bg-white dark:bg-dark-bg dark:text-white outline-none" value={newCourse.day} onChange={e => setNewCourse({...newCourse, day: e.target.value})}>
                                     {['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
-                            <div className="md:col-span-2">
-                                <input type="number" min="1" className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none" placeholder="حد الغياب" value={newCourse.maxAbsence} onChange={e => setNewCourse({...newCourse, maxAbsence: parseInt(e.target.value)})} />
+                            {/* New Fields */}
+                            <div className="col-span-1 md:col-span-1">
+                                <select className="w-full px-3 py-2 border border-slate-200 dark:border-dark-border rounded-lg bg-white dark:bg-dark-bg dark:text-white outline-none" value={newCourse.credits} onChange={e => setNewCourse({...newCourse, credits: e.target.value})}>
+                                    <option value="1">1 ساعة</option><option value="2">2 ساعة</option><option value="3">3 ساعة</option><option value="4">4 ساعة</option>
+                                </select>
                             </div>
-                            <button disabled={isAdding} className="md:col-span-1 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition flex items-center justify-center h-[42px]">
-                                {isAdding ? '...' : <i data-lucide="plus" className="w-5 h-5"></i>}
+                            <div className="col-span-1 md:col-span-1">
+                                <select className="w-full px-3 py-2 border border-slate-200 dark:border-dark-border rounded-lg bg-white dark:bg-dark-bg dark:text-white outline-none" value={newCourse.grade} onChange={e => setNewCourse({...newCourse, grade: e.target.value})}>
+                                    <option value="">الدرجة</option>
+                                    {Object.keys(gradePoints).map(g=><option key={g} value={g}>{g}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-1 md:col-span-1">
+                                <input type="number" min="1" className="w-full px-3 py-2 border border-slate-200 dark:border-dark-border rounded-lg dark:bg-dark-bg dark:text-white outline-none" placeholder="الغياب" value={newCourse.maxAbsence} onChange={e => setNewCourse({...newCourse, maxAbsence: parseInt(e.target.value)})} />
+                            </div>
+                            <button disabled={isAdding} className="col-span-2 md:col-span-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition flex items-center justify-center h-[42px]">
+                                {isAdding ? '...' : 'حفظ المادة'}
                             </button>
                         </form>
                     </div>
 
-                    {/* قائمة المواد */}
+                    {/* Cards List */}
                     {loading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {[1,2].map(i => <div key={i} className="h-40 bg-slate-100 rounded-xl animate-pulse"></div>)}
+                            {[1,2].map(i => <div key={i} className="h-40 bg-slate-100 dark:bg-dark-card rounded-xl animate-pulse"></div>)}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -269,40 +344,40 @@
                                 const progress = Math.min((absences / max) * 100, 100);
 
                                 return (
-                                    <div key={course.id} className={`bg-white p-5 rounded-xl shadow-sm border relative group transition-all ${isCritical ? 'border-red-300 bg-red-50' : 'border-slate-100 hover:border-indigo-300'}`}>
+                                    <div key={course.id} className={`bg-white dark:bg-dark-card p-5 rounded-xl shadow-sm border relative group transition-all ${isCritical ? 'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-900/10' : 'border-slate-100 dark:border-dark-border hover:border-indigo-300 dark:hover:border-indigo-700'}`}>
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
-                                                <h3 className="font-bold text-lg text-slate-800">{course.name}</h3>
-                                                <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
-                                                    <span className="flex items-center gap-1"><i data-lucide="user" className="w-3 h-3"></i> {course.doctor || '---'}</span>
-                                                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                                    <span className="flex items-center gap-1"><i data-lucide="calendar" className="w-3 h-3"></i> {course.day}</span>
-                                                </p>
+                                                <h3 className="font-bold text-lg text-slate-800 dark:text-white">{course.name}</h3>
+                                                <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-dark-muted mt-2">
+                                                    <span className="flex items-center gap-1 bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded"><i data-lucide="user" className="w-3 h-3"></i> {course.doctor || '-'}</span>
+                                                    <span className="flex items-center gap-1 bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded"><i data-lucide="calendar" className="w-3 h-3"></i> {course.day}</span>
+                                                    {course.grade && <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded font-bold">{course.grade}</span>}
+                                                </div>
                                             </div>
                                             <button onClick={() => handleDelete(course.id)} className="text-slate-300 hover:text-red-500 p-1"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
                                         </div>
                                         
-                                        {/* قسم الغياب */}
-                                        <div className="bg-slate-50/50 rounded-lg p-3 border border-slate-100">
+                                        {/* Attendance Section */}
+                                        <div className="bg-slate-50 dark:bg-dark-bg/50 rounded-lg p-3 border border-slate-100 dark:border-dark-border mt-3">
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-bold text-slate-600">الغياب: <span className={isDanger ? 'text-red-600' : 'text-indigo-600'}>{absences}</span> / {max}</span>
+                                                <span className="text-xs font-bold text-slate-600 dark:text-dark-muted">الغياب: <span className={isDanger ? 'text-red-600' : 'text-indigo-600 dark:text-indigo-400'}>{absences}</span> / {max}</span>
                                                 <div className="flex gap-1">
-                                                    <button onClick={() => updateAbsence(course, -1)} className="w-6 h-6 rounded bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-sm transition">-</button>
-                                                    <button onClick={() => updateAbsence(course, 1)} className="w-6 h-6 rounded bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm transition">+</button>
+                                                    <button onClick={() => updateAbsence(course, -1)} className="w-6 h-6 rounded bg-white dark:bg-dark-card border border-slate-200 dark:border-dark-border hover:bg-slate-100 dark:hover:bg-dark-bg text-slate-600 dark:text-dark-muted flex items-center justify-center font-bold text-sm transition">-</button>
+                                                    <button onClick={() => updateAbsence(course, 1)} className="w-6 h-6 rounded bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm transition">+</button>
                                                 </div>
                                             </div>
-                                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                                                <div className={`h-2 rounded-full transition-all duration-500 ${isDanger ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${progress}%` }}></div>
+                                            <div className="w-full bg-slate-200 dark:bg-dark-border rounded-full h-1.5 overflow-hidden">
+                                                <div className={`h-1.5 rounded-full transition-all duration-500 ${isDanger ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${progress}%` }}></div>
                                             </div>
-                                            {isDanger && <p className="text-[10px] text-red-600 font-bold mt-1 flex items-center gap-1"><i data-lucide="alert-triangle" className="w-3 h-3"></i> {isCritical ? 'تجاوزت الحد المسموح!' : 'انتبه! اقتربت من الحرمان'}</p>}
+                                            {isDanger && <p className="text-[10px] text-red-600 font-bold mt-1 flex items-center gap-1 animate-pulse"><i data-lucide="alert-triangle" className="w-3 h-3"></i> {isCritical ? 'تجاوزت الحد المسموح!' : 'تحذير: الحرمان قريب'}</p>}
                                         </div>
                                     </div>
                                 );
                             })}
                             {courses.length === 0 && (
-                                <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                <div className="col-span-full py-12 text-center border-2 border-dashed border-slate-200 dark:border-dark-border rounded-xl bg-slate-50 dark:bg-dark-card/50">
                                     <i data-lucide="book-open" className="w-10 h-10 text-slate-300 mx-auto mb-2"></i>
-                                    <p className="text-slate-500">لا توجد مواد مضافة بعد.</p>
+                                    <p className="text-slate-500 dark:text-dark-muted">لا توجد مواد مضافة بعد.</p>
                                 </div>
                             )}
                         </div>
@@ -311,199 +386,180 @@
             );
         };
 
-        // --- عرض المهام ---
+        // --- 4. Tasks View (Classic + Dark Mode) ---
         const TasksView = ({ user }) => {
             const [tasks, setTasks] = useState([]);
             const [newTask, setNewTask] = useState('');
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                const { db, collection, query, where, onSnapshot } = window.fb;
-                const q = query(collection(db, "tasks"), where("uid", "==", user.uid));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
+                const q = window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid));
+                const unsub = window.fb.onSnapshot(q, (snapshot) => {
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    // ترتيب محلي
                     data.sort((a,b) => b.createdAt?.seconds - a.createdAt?.seconds);
                     setTasks(data);
                     setLoading(false);
                     setTimeout(() => window.lucide.createIcons(), 100);
                 });
-                return () => unsubscribe();
+                return () => unsub();
             }, [user]);
 
             const addTask = async (e) => {
                 e.preventDefault();
                 if(!newTask.trim()) return;
-                const { db, collection, addDoc } = window.fb;
-                await addDoc(collection(db, "tasks"), {
-                    uid: user.uid,
-                    title: newTask,
-                    completed: false,
-                    createdAt: new Date()
-                });
+                await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), { uid: user.uid, title: newTask, completed: false, createdAt: new Date() });
                 setNewTask('');
             };
 
-            const toggleTask = async (task) => {
-                const { db, doc, updateDoc } = window.fb;
-                await updateDoc(doc(db, "tasks", task.id), { completed: !task.completed });
-            };
-
-            const deleteTask = async (id) => {
-                const { db, doc, deleteDoc } = window.fb;
-                await deleteDoc(doc(db, "tasks", id));
-            };
+            const toggleTask = async (task) => await window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", task.id), { completed: !task.completed });
+            const deleteTask = async (id) => await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
 
             return (
                 <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-2xl font-bold text-slate-800">المهام والواجبات</h2>
-                        <span className="text-slate-500 text-sm">{tasks.filter(t => !t.completed).length} متبقية</span>
+                        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">قائمة المهام</h2>
+                        <span className="text-slate-500 dark:text-dark-muted text-sm">{tasks.filter(t => !t.completed).length} متبقية</span>
                     </div>
                     
                     <form onSubmit={addTask} className="relative">
-                        <input className="w-full pl-4 pr-12 py-4 rounded-2xl border border-slate-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" 
+                        <input className="w-full pl-4 pr-12 py-4 rounded-2xl border border-slate-200 dark:border-dark-border dark:bg-dark-card dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" 
                                placeholder="أضف مهمة جديدة..." value={newTask} onChange={e => setNewTask(e.target.value)} />
-                        <button className="absolute left-2 top-2 bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-bold hover:bg-indigo-700 transition flex items-center">
-                            <i data-lucide="plus" className="w-5 h-5"></i>
-                        </button>
+                        <button className="absolute left-2 top-2 bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-bold hover:bg-indigo-700 transition flex items-center"><i data-lucide="plus" className="w-5 h-5"></i></button>
                     </form>
 
                     <div className="space-y-3">
                         {loading ? <p className="text-center text-slate-400">جاري التحميل...</p> : tasks.map(task => (
-                            <div key={task.id} className={`flex items-center gap-4 p-4 bg-white rounded-xl border transition-all group ${task.completed ? 'border-slate-100 bg-slate-50/50' : 'border-slate-100 shadow-sm hover:border-indigo-100'}`}>
-                                <button onClick={() => toggleTask(task)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-green-500 border-green-500' : 'border-slate-300 hover:border-indigo-500'}`}>
+                            <div key={task.id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all group ${task.completed ? 'bg-slate-50 dark:bg-dark-bg border-slate-100 dark:border-dark-border opacity-60' : 'bg-white dark:bg-dark-card border-slate-100 dark:border-dark-border shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900'}`}>
+                                <button onClick={() => toggleTask(task)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-green-500 border-green-500' : 'border-slate-300 dark:border-slate-500 hover:border-indigo-500'}`}>
                                     {task.completed && <i data-lucide="check" className="w-3 h-3 text-white"></i>}
                                 </button>
-                                <span className={`flex-1 font-medium transition-colors ${task.completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>{task.title}</span>
+                                <span className={`flex-1 font-medium transition-colors ${task.completed ? 'line-through text-slate-400 dark:text-dark-muted' : 'text-slate-800 dark:text-white'}`}>{task.title}</span>
                                 <button onClick={() => deleteTask(task.id)} className="text-slate-300 hover:text-red-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="trash-2" className="w-4 h-4"></i></button>
                             </div>
                         ))}
-                        {!loading && tasks.length === 0 && (
-                            <div className="text-center py-12 flex flex-col items-center">
-                                <div className="bg-slate-100 p-4 rounded-full mb-3"><i data-lucide="coffee" className="w-8 h-8 text-slate-400"></i></div>
-                                <p className="text-slate-500">لا توجد مهام حالياً. استمتع بوقتك!</p>
-                            </div>
-                        )}
                     </div>
                 </div>
             );
         };
 
-        // --- الرئيسية (ملخص) ---
+        // --- 5. Home View (Stats + Pomodoro) ---
         const HomeView = ({ user, setTab }) => {
             const [stats, setStats] = useState({ courses: 0, tasks: 0 });
 
             useEffect(() => {
-                const { db, collection, query, where, onSnapshot } = window.fb;
-                const unsub1 = onSnapshot(query(collection(db, "courses"), where("uid", "==", user.uid)), s => setStats(p => ({...p, courses: s.size})));
-                const unsub2 = onSnapshot(query(collection(db, "tasks"), where("uid", "==", user.uid), where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
-                return () => { unsub1(); unsub2(); };
+                const q1 = window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid));
+                const q2 = window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid), window.fb.where("completed", "==", false));
+                
+                const u1 = window.fb.onSnapshot(q1, s => setStats(p => ({...p, courses: s.size})));
+                const u2 = window.fb.onSnapshot(q2, s => setStats(p => ({...p, tasks: s.size})));
+                return () => { u1(); u2(); };
             }, [user]);
 
             return (
                 <div className="space-y-8 animate-fade-in">
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-xl shadow-indigo-200 dark:shadow-none relative overflow-hidden">
                         <div className="relative z-10">
                             <h1 className="text-3xl font-bold mb-2">مرحباً بك 👋</h1>
-                            <p className="text-indigo-100 opacity-90">نظم وقتك، تابع موادك، وحقق أهدافك الدراسية بسهولة.</p>
+                            <p className="text-indigo-100 opacity-90">اليوم هو يوم رائع لتحقيق إنجاز جديد!</p>
                         </div>
                         <i data-lucide="award" className="absolute left-4 bottom-[-20px] w-32 h-32 text-white opacity-10 transform rotate-12"></i>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div onClick={() => setTab('courses')} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
-                            <div className="flex justify-between items-center mb-4">
-                                <div className="bg-blue-50 p-3 rounded-xl group-hover:bg-blue-100 transition"><i data-lucide="book-open" className="w-8 h-8 text-blue-600"></i></div>
-                                <span className="text-4xl font-bold text-slate-800">{stats.courses}</span>
-                            </div>
-                            <h3 className="text-slate-500 font-bold">مواد مسجلة</h3>
-                            <p className="text-xs text-blue-500 mt-2 font-medium">إدارة المواد والحضور &larr;</p>
-                        </div>
+                    <PomodoroTimer />
 
-                        <div onClick={() => setTab('tasks')} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition cursor-pointer group">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div onClick={() => setTab('courses')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm hover:shadow-md transition cursor-pointer group">
                             <div className="flex justify-between items-center mb-4">
-                                <div className="bg-orange-50 p-3 rounded-xl group-hover:bg-orange-100 transition"><i data-lucide="check-square" className="w-8 h-8 text-orange-600"></i></div>
-                                <span className="text-4xl font-bold text-slate-800">{stats.tasks}</span>
+                                <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition"><i data-lucide="book-open" className="w-8 h-8 text-blue-600 dark:text-blue-400"></i></div>
+                                <span className="text-4xl font-bold text-slate-800 dark:text-white">{stats.courses}</span>
                             </div>
-                            <h3 className="text-slate-500 font-bold">مهام قيد الانتظار</h3>
-                            <p className="text-xs text-orange-500 mt-2 font-medium">عرض قائمة المهام &larr;</p>
+                            <h3 className="text-slate-500 dark:text-dark-muted font-bold">مواد مسجلة</h3>
+                            <p className="text-xs text-blue-500 dark:text-blue-400 mt-2 font-medium">متابعة الحضور والدرجات &larr;</p>
+                        </div>
+                        <div onClick={() => setTab('tasks')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm hover:shadow-md transition cursor-pointer group">
+                            <div className="flex justify-between items-center mb-4">
+                                <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-xl group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50 transition"><i data-lucide="check-square" className="w-8 h-8 text-orange-600 dark:text-orange-400"></i></div>
+                                <span className="text-4xl font-bold text-slate-800 dark:text-white">{stats.tasks}</span>
+                            </div>
+                            <h3 className="text-slate-500 dark:text-dark-muted font-bold">مهام قيد الانتظار</h3>
+                            <p className="text-xs text-orange-500 dark:text-orange-400 mt-2 font-medium">إنجاز المهام &larr;</p>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // --- المخطط الرئيسي (Dashboard Layout) ---
+        // --- 6. Dashboard Layout (Classic Sidebar + Dark Mode Toggle) ---
         const Dashboard = ({ user }) => {
             const [activeTab, setActiveTab] = useState('home');
             const [showMobileMenu, setShowMobileMenu] = useState(false);
+            const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
-            const handleLogout = () => {
-                if(confirm('تسجيل خروج؟')) window.fb.signOut(window.fb.auth);
-            };
+            useEffect(() => {
+                if(darkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+            }, [darkMode]);
+
+            const handleLogout = () => { if(confirm('تسجيل خروج؟')) window.fb.signOut(window.fb.auth); };
 
             const NavItem = ({ id, icon, label }) => (
                 <button 
                     onClick={() => { setActiveTab(id); setShowMobileMenu(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-bg hover:text-slate-700 dark:hover:text-white'}`}
                 >
                     <i data-lucide={icon} className="w-5 h-5"></i>
                     <span>{label}</span>
                 </button>
             );
 
-            useEffect(() => {
-                setTimeout(() => window.lucide.createIcons(), 50);
-            }, [activeTab, showMobileMenu]);
+            useEffect(() => { setTimeout(() => window.lucide.createIcons(), 50); }, [activeTab, showMobileMenu]);
 
             return (
-                <div className="min-h-screen bg-slate-50 flex">
-                    {/* Sidebar Desktop */}
-                    <aside className="hidden md:flex flex-col w-72 bg-white border-l border-slate-200 p-6 shadow-sm z-10">
+                <div className="min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors flex">
+                    {/* Sidebar */}
+                    <aside className="hidden md:flex flex-col w-72 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border p-6 shadow-sm z-10 transition-colors">
                         <div className="flex items-center gap-3 px-2 mb-10">
-                            <div className="bg-indigo-600 p-2 rounded-lg shadow-lg shadow-indigo-200"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div>
-                            <span className="font-bold text-2xl text-slate-800 tracking-tight">جامعتي</span>
+                            <div className="bg-indigo-600 p-2 rounded-lg shadow-lg shadow-indigo-200 dark:shadow-none"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div>
+                            <span className="font-bold text-2xl text-slate-800 dark:text-white tracking-tight">جامعتي</span>
                         </div>
                         <nav className="flex-1 space-y-2">
                             <NavItem id="home" icon="layout-grid" label="الرئيسية" />
-                            <NavItem id="courses" icon="book-open" label="المواد الدراسية" />
+                            <NavItem id="courses" icon="book-open" label="المواد والدرجات" />
                             <NavItem id="tasks" icon="list-todo" label="المهام" />
                         </nav>
-                        <div className="pt-6 border-t border-slate-100">
-                            <div className="px-2 py-3 mb-2 bg-slate-50 rounded-xl">
-                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">المستخدم الحالي</p>
-                                <p className="text-xs font-bold text-slate-700 truncate dir-ltr">{user.email}</p>
-                            </div>
-                            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl text-sm font-bold transition">
+                        <div className="pt-6 border-t border-slate-100 dark:border-dark-border space-y-3">
+                             <button onClick={() => setDarkMode(!darkMode)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-dark-bg rounded-xl text-slate-600 dark:text-dark-muted hover:text-slate-800 dark:hover:text-white font-bold transition">
+                                <i data-lucide={darkMode ? "sun" : "moon"} className="w-5 h-5"></i> {darkMode ? 'الوضع النهاري' : 'الوضع الليلي'}
+                            </button>
+                            <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold transition">
                                 <i data-lucide="log-out" className="w-5 h-5"></i> تسجيل خروج
                             </button>
                         </div>
                     </aside>
 
-                    {/* Main Content */}
+                    {/* Content */}
                     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                        {/* Mobile Header */}
-                        <header className="md:hidden bg-white border-b border-slate-200 p-4 flex justify-between items-center z-20 sticky top-0">
+                        <header className="md:hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border p-4 flex justify-between items-center z-20 sticky top-0">
                             <div className="flex items-center gap-2">
-                                <i data-lucide="graduation-cap" className="text-indigo-600 w-6 h-6"></i>
-                                <span className="font-bold text-lg text-slate-800">جامعتي</span>
+                                <i data-lucide="graduation-cap" className="text-indigo-600 dark:text-indigo-400 w-6 h-6"></i>
+                                <span className="font-bold text-lg text-slate-800 dark:text-white">جامعتي</span>
                             </div>
-                            <button onClick={() => setShowMobileMenu(!showMobileMenu)} className="p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
-                                <i data-lucide={showMobileMenu ? "x" : "menu"} className="w-6 h-6 text-slate-600"></i>
-                            </button>
+                            <div className="flex gap-2">
+                                <button onClick={() => setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg text-slate-600 dark:text-dark-muted"><i data-lucide={darkMode ? "sun" : "moon"} className="w-5 h-5"></i></button>
+                                <button onClick={() => setShowMobileMenu(!showMobileMenu)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition">
+                                    <i data-lucide={showMobileMenu ? "x" : "menu"} className="w-6 h-6 text-slate-600 dark:text-dark-muted"></i>
+                                </button>
+                            </div>
                         </header>
 
-                        {/* Mobile Menu Overlay */}
                         {showMobileMenu && (
-                            <div className="md:hidden fixed inset-0 top-[65px] bg-white z-10 p-4 space-y-2 animate-in slide-in-from-top-2">
+                            <div className="md:hidden fixed inset-0 top-[65px] bg-white dark:bg-dark-card z-10 p-4 space-y-2 animate-in slide-in-from-top-2">
                                 <NavItem id="home" icon="layout-grid" label="الرئيسية" />
-                                <NavItem id="courses" icon="book-open" label="المواد الدراسية" />
+                                <NavItem id="courses" icon="book-open" label="المواد والدرجات" />
                                 <NavItem id="tasks" icon="list-todo" label="المهام" />
-                                <div className="h-px bg-slate-100 my-4"></div>
-                                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 bg-red-50 rounded-xl font-bold">
-                                    <i data-lucide="log-out" className="w-5 h-5"></i> تسجيل خروج
-                                </button>
+                                <div className="h-px bg-slate-100 dark:bg-dark-border my-4"></div>
+                                <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 bg-red-50 dark:bg-red-900/20 rounded-xl font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> تسجيل خروج</button>
                             </div>
                         )}
 
@@ -519,29 +575,15 @@
             );
         };
 
-        // --- Root App ---
+        // --- Root ---
         const App = () => {
             const [user, setUser] = useState(null);
-            const [firebaseReady, setFirebaseReady] = useState(false);
-            const [loading, setLoading] = useState(true);
-
+            const [ready, setReady] = useState(false);
             useEffect(() => {
-                const init = () => {
-                    if (window.fb) {
-                        setFirebaseReady(true);
-                        window.fb.onAuthStateChanged(window.fb.auth, (u) => {
-                            setUser(u);
-                            setLoading(false);
-                            setTimeout(() => window.lucide && window.lucide.createIcons(), 100);
-                        });
-                    }
-                };
-
-                if (window.fb) init();
-                else window.addEventListener('firebase-ready', init);
+                const init = () => { if (window.fb) { setReady(true); window.fb.onAuthStateChanged(window.fb.auth, setUser); } };
+                if (window.fb) init(); else window.addEventListener('firebase-ready', init);
             }, []);
-
-            if (!firebaseReady || loading) return <Loading />;
+            if (!ready) return <Loading />;
             return user ? <Dashboard user={user} /> : <AuthScreen />;
         };
 
