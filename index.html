@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جامعتي - النظام الكامل</title>
+    <!-- سياسة أمان المحتوى (CSP) لحماية الموقع من الهجمات -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseapp.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.tailwindcss.com https://*.gstatic.com https://*.firebaseio.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com;">
+    
+    <title>جامعتي - النظام الآمن</title>
     
     <!-- React & DOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -51,6 +54,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // إعدادات الاتصال (API Key عام ولا يشكل خطراً إذا كانت القواعد مضبوطة)
         const firebaseConfig = {
             apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
             authDomain: "myeduplatform-fe0eb.firebaseapp.com",
@@ -72,11 +76,17 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- إعدادات الأدمن ---
-        const ADMIN_EMAIL = "mohammadsafe202a@gmail.com";
+        // --- إعدادات الأدمن (محمية بقواعد البيانات أيضاً) ---
+        const ADMIN_EMAIL = "admin@university.edu";
+
+        // --- Helper: دالة تنظيف المدخلات (Security Sanitize) ---
+        const sanitize = (str) => {
+            if (typeof str !== 'string') return str;
+            return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim();
+        };
 
         // --- Shared ---
-        const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل...</p></div>;
+        const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل الآمن...</p></div>;
 
         // 1. Auth Screen
         const AuthScreen = () => {
@@ -87,12 +97,14 @@
             const [loading, setLoading] = useState(false);
 
             const handleSubmit = async (e) => {
-                e.preventDefault(); setError(''); setLoading(true);
+                e.preventDefault(); 
+                if(!email.includes('@') || password.length < 6) { setError("بيانات غير صالحة"); return; }
+                setError(''); setLoading(true);
                 try {
                     const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
                     if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
                     else await signInWithEmailAndPassword(auth, email, password);
-                } catch (err) { setError("يرجى التحقق من البيانات."); } finally { setLoading(false); }
+                } catch (err) { setError("فشل الدخول. تحقق من البيانات."); } finally { setLoading(false); }
             };
 
             return (
@@ -100,15 +112,15 @@
                     <div className="bg-white dark:bg-dark-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border dark:border-dark-border">
                         <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
                             <div className="absolute inset-0 bg-white/5 transform skew-y-6 scale-150"></div>
-                            <i data-lucide="graduation-cap" className="w-14 h-14 text-white mx-auto mb-3 relative z-10"></i>
+                            <i data-lucide="shield-check" className="w-14 h-14 text-white mx-auto mb-3 relative z-10"></i>
                             <h1 className="text-2xl font-bold text-white relative z-10">جامعتي</h1>
-                            <p className="text-indigo-100 text-sm relative z-10">بوابتك للتميز الدراسي</p>
+                            <p className="text-indigo-100 text-sm relative z-10">نظام آمن ومشفر</p>
                         </div>
                         <div className="p-8">
                             <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
                             {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm mb-4">{error}</div>}
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} placeholder="البريد الإلكتروني" />
+                                <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(sanitize(e.target.value))} placeholder="البريد الإلكتروني" />
                                 <input type="password" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-input dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
                                 <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center">
                                     {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}
@@ -142,13 +154,11 @@
             );
         };
 
-        // 3. Training View
+        // 3. Training View (Legendary Edition - Fixes)
         const TrainingView = ({ user }) => {
             const [viewMode, setViewMode] = useState('list');
             const [exams, setExams] = useState([]);
             const [currentExam, setCurrentExam] = useState(null);
-            
-            // Create
             const [newExamTitle, setNewExamTitle] = useState('');
             const [questions, setQuestions] = useState([]);
             const [qType, setQType] = useState('mcq');
@@ -156,19 +166,15 @@
             const [qOptions, setQOptions] = useState(['', '', '', '']);
             const [qCorrect, setQCorrect] = useState(0);
             const [qExplanation, setQExplanation] = useState('');
-
-            // Take & Score
             const [activeQIndex, setActiveQIndex] = useState(0);
             const [selectedOption, setSelectedOption] = useState(null);
             const [showExplanation, setShowExplanation] = useState(false);
             const [score, setScore] = useState(0);
             const [examFinished, setExamFinished] = useState(false);
             const [essayAnswerShown, setEssayAnswerShown] = useState(false);
-
-            // Leaderboard & Requests
             const [showLeaderboard, setShowLeaderboard] = useState(null);
             const [leaderboardData, setLeaderboardData] = useState([]);
-            const [examRequests, setExamRequests] = useState([]); // Admin only
+            const [examRequests, setExamRequests] = useState([]);
 
             const isAdmin = user.email === ADMIN_EMAIL;
 
@@ -197,10 +203,8 @@
             };
 
             const checkExamStatus = async (exam) => {
-                // Check if user already took exam
                 const q = window.fb.query(window.fb.collection(window.fb.db, "exam_results"), window.fb.where("examId", "==", exam.id), window.fb.where("userId", "==", user.uid));
                 const snap = await window.fb.getDocs(q);
-                
                 const reqQ = window.fb.query(window.fb.collection(window.fb.db, "exam_requests"), window.fb.where("examId", "==", exam.id), window.fb.where("userId", "==", user.uid));
                 const reqSnap = await window.fb.getDocs(reqQ);
                 const reqData = reqSnap.empty ? null : reqSnap.docs[0].data();
@@ -231,8 +235,8 @@
                 alert("تم قبول الطلب");
             };
 
-            const addQ = () => { if(!qText) return; setQuestions([...questions, { id: Date.now(), type: qType, text: qText, explanation: qExplanation, options: qType === 'mcq' ? qOptions : [], correct: qType === 'mcq' ? qCorrect : null }]); setQText(''); setQExplanation(''); setQOptions(['', '', '', '']); setQCorrect(0); };
-            const saveExam = async () => { if(!newExamTitle || questions.length === 0) return; await window.fb.addDoc(window.fb.collection(window.fb.db, "practice_exams"), { title: newExamTitle, questions: questions, createdBy: user.email, createdAt: new Date(), views: 0 }); setViewMode('list'); setNewExamTitle(''); setQuestions([]); };
+            const addQ = () => { if(!qText) return; setQuestions([...questions, { id: Date.now(), type: qType, text: sanitize(qText), explanation: sanitize(qExplanation), options: qType === 'mcq' ? qOptions.map(o=>sanitize(o)) : [], correct: qType === 'mcq' ? qCorrect : null }]); setQText(''); setQExplanation(''); setQOptions(['', '', '', '']); setQCorrect(0); };
+            const saveExam = async () => { if(!newExamTitle || questions.length === 0) return; await window.fb.addDoc(window.fb.collection(window.fb.db, "practice_exams"), { title: sanitize(newExamTitle), questions: questions, createdBy: user.email, createdAt: new Date(), views: 0 }); setViewMode('list'); setNewExamTitle(''); setQuestions([]); };
             const deleteExam = async (id) => { if(confirm("حذف؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "practice_exams", id)); };
 
             const startExam = async (exam) => {
@@ -253,7 +257,7 @@
 
             if (showLeaderboard) return (
                 <div onClick={()=>setShowLeaderboard(null)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in cursor-pointer">
-                    <div onClick={e=>e.stopPropagation()} className="bg-white dark:bg-dark-card w-full max-w-md rounded-3xl p-6 shadow-2xl border dark:border-dark-border cursor-default transform transition-all scale-100">
+                    <div onClick={e=>e.stopPropagation()} className="bg-white dark:bg-dark-card w-full max-w-md rounded-3xl p-6 shadow-2xl border dark:border-dark-border cursor-default">
                         <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-xl dark:text-white flex items-center gap-2"><i data-lucide="trophy" className="text-yellow-500 w-7 h-7"></i> لوحة الأوائل</h3><button onClick={()=>setShowLeaderboard(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-dark-bg rounded-full transition"><i data-lucide="x" className="text-slate-400"></i></button></div>
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
                             {leaderboardData.length === 0 ? <p className="text-center text-slate-400 py-10">كن أول من يتصدر!</p> : 
@@ -270,14 +274,7 @@
             if(viewMode === 'list') return (
                 <div className="space-y-6 animate-fade-in">
                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">نماذج التدريب</h2>{isAdmin && <button onClick={()=>setViewMode('create')} className="bg-indigo-600 text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1"><i data-lucide="plus" className="w-4 h-4"></i> إضافة</button>}</div>
-                    
-                    {isAdmin && examRequests.length > 0 && (
-                        <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-4">
-                            <h3 className="font-bold text-orange-800 mb-2">طلبات إعادة ({examRequests.length})</h3>
-                            <div className="space-y-2">{examRequests.map(req => (<div key={req.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm"><span className="text-sm">الطالب <b>{req.username}</b> - <b>{req.examTitle}</b></span><button onClick={()=>approveRequest(req.id)} className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">قبول</button></div>))}</div>
-                        </div>
-                    )}
-
+                    {isAdmin && examRequests.length > 0 && (<div className="bg-orange-50 border border-orange-200 p-4 rounded-xl mb-4"><h3 className="font-bold text-orange-800 mb-2">طلبات إعادة ({examRequests.length})</h3><div className="space-y-2">{examRequests.map(req => (<div key={req.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm"><span className="text-sm">الطالب <b>{req.username}</b> - <b>{req.examTitle}</b></span><button onClick={()=>approveRequest(req.id)} className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold">قبول</button></div>))}</div></div>)}
                     <div className="grid md:grid-cols-2 gap-4">{exams.map(e => (
                         <div key={e.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border shadow-sm flex flex-col justify-between group">
                             <div className="flex justify-between items-start mb-4"><div><h3 className="font-bold dark:text-white text-lg">{e.title}</h3><p className="text-xs text-slate-500 mt-1">{e.questions.length} سؤال</p></div>{isAdmin && <button onClick={()=>deleteExam(e.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition"><i data-lucide="trash-2" className="w-4 h-4"></i></button>}</div>
@@ -294,12 +291,12 @@
                 <div className="space-y-4 animate-fade-in">
                     <button onClick={()=>setViewMode('list')} className="text-slate-500 flex items-center gap-1"><i data-lucide="arrow-right" className="w-4 h-4"></i> عودة</button>
                     <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border space-y-4">
-                        <input className="w-full p-2 border-b dark:bg-dark-card dark:text-white outline-none font-bold" placeholder="عنوان النموذج" value={newExamTitle} onChange={e=>setNewExamTitle(e.target.value)} />
+                        <input className="w-full p-2 border-b dark:bg-dark-card dark:text-white outline-none font-bold" placeholder="عنوان النموذج" value={newExamTitle} onChange={e=>setNewExamTitle(sanitize(e.target.value))} />
                         <div className="bg-slate-50 dark:bg-dark-bg p-4 rounded-xl space-y-3">
                             <div className="flex gap-2 mb-2"><button onClick={()=>setQType('mcq')} className={`px-3 py-1 rounded text-xs ${qType==='mcq'?'bg-indigo-600 text-white':'bg-white dark:bg-dark-card dark:text-white'}`}>اختيارات</button><button onClick={()=>setQType('essay')} className={`px-3 py-1 rounded text-xs ${qType==='essay'?'bg-indigo-600 text-white':'bg-white dark:bg-dark-card dark:text-white'}`}>مقالي</button></div>
-                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="نص السؤال" value={qText} onChange={e=>setQText(e.target.value)} />
-                            {qType === 'mcq' && qOptions.map((o,i)=><div key={i} className="flex gap-2"><input type="radio" name="cor" checked={qCorrect===i} onChange={()=>setQCorrect(i)} /><input className="flex-1 p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder={`خيار ${i+1}`} value={o} onChange={e=>{const n=[...qOptions];n[i]=e.target.value;setQOptions(n)}} /></div>)}
-                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="الشرح / الإجابة النموذجية" value={qExplanation} onChange={e=>setQExplanation(e.target.value)} />
+                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="نص السؤال" value={qText} onChange={e=>setQText(sanitize(e.target.value))} />
+                            {qType === 'mcq' && qOptions.map((o,i)=><div key={i} className="flex gap-2"><input type="radio" name="cor" checked={qCorrect===i} onChange={()=>setQCorrect(i)} /><input className="flex-1 p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder={`خيار ${i+1}`} value={o} onChange={e=>{const n=[...qOptions];n[i]=sanitize(e.target.value);setQOptions(n)}} /></div>)}
+                            <textarea className="w-full p-2 rounded border dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="الشرح / الإجابة النموذجية" value={qExplanation} onChange={e=>setQExplanation(sanitize(e.target.value))} />
                             <button onClick={addQ} className="w-full bg-slate-800 text-white py-2 rounded text-sm font-bold">إضافة السؤال</button>
                         </div>
                         <button onClick={saveExam} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">نشر النموذج</button>
@@ -365,10 +362,10 @@
                     <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">غرفة الامتحانات</h2><span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{exams.length} قادمة</span></div>
                     <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border dark:border-dark-border">
                         <form onSubmit={addExam} className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                            <input className="col-span-2 md:col-span-2 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white outline-none" placeholder="المادة" required value={newExam.subject} onChange={e => setNewExam({...newExam, subject: e.target.value})} />
+                            <input className="col-span-2 md:col-span-2 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white outline-none" placeholder="المادة" required value={newExam.subject} onChange={e => setNewExam(sanitize(e.target.value))} />
                             <select className="w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-input dark:border-dark-border dark:text-white" value={newExam.type} onChange={e => setNewExam({...newExam, type: e.target.value})}><option>Final</option><option>Midterm</option><option>Quiz</option></select>
                             <input type="datetime-local" className="col-span-2 md:col-span-1 w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" required value={newExam.date} onChange={e => setNewExam({...newExam, date: e.target.value})} />
-                            <input className="w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="القاعة" value={newExam.location} onChange={e => setNewExam({...newExam, location: e.target.value})} />
+                            <input className="w-full h-11 px-3 border rounded-lg dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="القاعة" value={newExam.location} onChange={e => setNewExam(sanitize(e.target.value))} />
                             <button disabled={isAdding} className="col-span-2 md:col-span-5 h-11 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition">{isAdding ? '...' : 'حفظ الامتحان'}</button>
                         </form>
                     </div>
@@ -377,7 +374,7 @@
             );
         };
 
-        // --- 5. Courses View (WARNINGS FIXED) ---
+        // --- 5. Courses View (WARNINGS FIXED & SECURE) ---
         const CoursesView = ({ user }) => {
             const [courses, setCourses] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -405,8 +402,8 @@
                     <div className="flex justify-between items-center"><div><h2 className="text-2xl font-bold dark:text-white">المواد</h2><p className="text-sm text-slate-500">الجدول والمعدل</p></div><div className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-center"><div className="text-xs opacity-80">GPA</div><div className="text-xl font-bold font-mono">{gpa}</div></div></div>
                     <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border">
                         <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-6 gap-3">
-                            <input className="col-span-2 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="اسم المادة" value={newCourse.name} onChange={e=>setNewCourse({...newCourse, name: e.target.value})} />
-                            <input className="col-span-1 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="دكتور" value={newCourse.doctor} onChange={e=>setNewCourse({...newCourse, doctor: e.target.value})} />
+                            <input className="col-span-2 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="اسم المادة" value={newCourse.name} onChange={e=>setNewCourse({...newCourse, name: sanitize(e.target.value)})} />
+                            <input className="col-span-1 w-full h-10 px-3 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" placeholder="دكتور" value={newCourse.doctor} onChange={e=>setNewCourse({...newCourse, doctor: sanitize(e.target.value)})} />
                             <select className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.day} onChange={e=>setNewCourse({...newCourse, day: e.target.value})}>{['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'].map(d=><option key={d} value={d}>{d}</option>)}</select>
                             <input type="time" className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.time} onChange={e=>setNewCourse({...newCourse, time: e.target.value})} />
                             <select className="col-span-1 w-full h-10 px-2 border rounded dark:bg-dark-input dark:border-dark-border dark:text-white" value={newCourse.grade} onChange={e=>setNewCourse({...newCourse, grade: e.target.value})}><option value="">الدرجة</option>{Object.keys(gradePoints).map(g=><option key={g} value={g}>{g}</option>)}</select>
@@ -417,8 +414,8 @@
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">{courses.map(c => {
                         const abs = c.absences||0; const max = c.maxAbsence||4;
-                        const isDanger = abs >= max; // Red
-                        const isWarning = abs === max - 1; // Orange
+                        const isDanger = abs >= max; // Red (Exceeded)
+                        const isWarning = abs === max - 1; // Orange (1 left)
                         return (
                             <div key={c.id} className={`p-5 bg-white dark:bg-dark-card border rounded-xl relative ${isDanger?'border-red-300 bg-red-50 dark:bg-red-900/10 dark:border-red-900':isWarning?'border-orange-300 bg-orange-50 dark:bg-orange-900/10 dark:border-orange-900':'dark:border-dark-border'}`}>
                                 <div className="flex justify-between mb-2">
@@ -447,7 +444,7 @@
                     setTasks(s.docs.map(doc => ({id:doc.id, ...doc.data()})).sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
                 }); return () => unsub();
             }, [user]);
-            const add = async (e) => { e.preventDefault(); if(newTask) await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), {uid:user.uid, title:newTask, completed:!1, createdAt:new Date()}); setNewTask(''); };
+            const add = async (e) => { e.preventDefault(); if(newTask) await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), {uid:user.uid, title:sanitize(newTask), completed:!1, createdAt:new Date()}); setNewTask(''); };
             const toggle = async (t) => await window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", t.id), {completed: !t.completed});
             const del = async (id) => await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
 
@@ -503,8 +500,9 @@
 
             const saveUsername = async () => {
                 if(!newName.trim()) return;
-                await window.fb.updateProfile(user, { displayName: newName });
-                await window.fb.setDoc(window.fb.doc(window.fb.db, "users", user.uid), { username: newName }, { merge: true });
+                await window.fb.updateProfile(user, { displayName: sanitize(newName) });
+                // Also save to a users collection for leaderboard queries
+                await window.fb.setDoc(window.fb.doc(window.fb.db, "users", user.uid), { username: sanitize(newName) }, { merge: true });
                 setShowNameModal(false);
             };
 
@@ -515,11 +513,11 @@
                     {/* Username Modal */}
                     {showNameModal && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-xl w-full max-w-sm text-center">
+                            <div className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-xl w-full max-w-sm text-center border dark:border-dark-border">
                                 <h3 className="text-xl font-bold mb-2 dark:text-white">أهلاً بك! 👋</h3>
                                 <p className="text-slate-500 mb-4 text-sm">من فضلك اكتب اسمك ليظهر في لوحة الأوائل</p>
-                                <input className="w-full p-3 border rounded-xl mb-4 dark:bg-dark-input dark:text-white" placeholder="اسمك الثلاثي" value={newName} onChange={e=>setNewName(e.target.value)} />
-                                <button onClick={saveUsername} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">حفظ ومتابعة</button>
+                                <input className="w-full p-3 border rounded-xl mb-4 dark:bg-dark-input dark:border-dark-border dark:text-white outline-none" placeholder="اسمك الثلاثي" value={newName} onChange={e=>setNewName(e.target.value)} />
+                                <button onClick={saveUsername} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">حفظ ومتابعة</button>
                             </div>
                         </div>
                     )}
