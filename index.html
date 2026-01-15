@@ -32,12 +32,17 @@
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.4s ease-out',
+                        'zoom-in': 'zoomIn 0.2s ease-out',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeIn: {
                             '0%': { opacity: '0', transform: 'translateY(5px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        zoomIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.95)' },
+                            '100%': { opacity: '1', transform: 'scale(1)' },
                         }
                     }
                 }
@@ -50,14 +55,12 @@
         .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* Smooth Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Prevent input zoom on mobile */
         input, select, textarea { font-size: 16px !important; }
     </style>
 </head>
@@ -66,7 +69,6 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        // تم إضافة updateProfile هنا
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -84,7 +86,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // تم إضافة updateProfile هنا أيضاً
         window.fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
@@ -92,10 +93,38 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- Components ---
+        // --- Shared Components ---
         const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل...</p></div>;
 
-        // 1. Auth Screen (تم التعديل لإضافة الاسم)
+        // --- NEW: Custom Modal Component ---
+        const ConfirmModal = ({ isOpen, title, message, type = 'danger', onConfirm, onCancel }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-fade-in">
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onCancel}></div>
+                    
+                    {/* Modal Card */}
+                    <div className="bg-white dark:bg-dark-card w-full max-w-sm rounded-2xl shadow-2xl relative z-10 overflow-hidden animate-zoom-in border border-slate-100 dark:border-dark-border">
+                        <div className={`p-6 text-center ${type === 'danger' ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-indigo-50/50 dark:bg-indigo-900/10'}`}>
+                            <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${type === 'danger' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'}`}>
+                                <i data-lucide={type === 'danger' ? "alert-triangle" : "info"} className="w-8 h-8"></i>
+                            </div>
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{title}</h3>
+                            <p className="text-slate-500 dark:text-dark-muted text-sm leading-relaxed">{message}</p>
+                        </div>
+                        <div className="p-4 bg-white dark:bg-dark-card border-t border-slate-100 dark:border-dark-border flex gap-3">
+                            <button onClick={onCancel} className="flex-1 h-11 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">إلغاء</button>
+                            <button onClick={onConfirm} className={`flex-1 h-11 rounded-xl font-bold text-white shadow-lg transition transform active:scale-95 ${type === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                                {type === 'danger' ? 'نعم، حذف' : 'موافق'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 1. Auth Screen
         const AuthScreen = () => {
             const [isRegister, setIsRegister] = useState(false);
             const [name, setName] = useState('');
@@ -110,16 +139,11 @@
                     const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = window.fb;
                     if (isRegister) {
                         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                        if(name) {
-                            await updateProfile(userCredential.user, { displayName: name });
-                        }
+                        if(name) await updateProfile(userCredential.user, { displayName: name });
                     } else {
                         await signInWithEmailAndPassword(auth, email, password);
                     }
-                } catch (err) { 
-                    console.error(err);
-                    setError("يرجى التحقق من البيانات والاتصال."); 
-                } 
+                } catch (err) { console.error(err); setError("يرجى التحقق من البيانات والاتصال."); } 
                 finally { setLoading(false); }
             };
 
@@ -136,14 +160,10 @@
                             <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
                             {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm mb-4 border border-red-100 dark:border-red-900 flex items-center gap-2"><i data-lucide="alert-circle" className="w-4 h-4"></i>{error}</div>}
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                {isRegister && (
-                                    <input type="text" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={name} onChange={e => setName(e.target.value)} placeholder="الاسم (مثلاً: أحمد)" />
-                                )}
+                                {isRegister && <input type="text" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={name} onChange={e => setName(e.target.value)} placeholder="الاسم (مثلاً: أحمد)" />}
                                 <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} placeholder="البريد الإلكتروني" />
                                 <input type="password" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
-                                <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2">
-                                    {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}
-                                </button>
+                                <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2">{loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}</button>
                             </form>
                             <button onClick={() => {setIsRegister(!isRegister); setError('');}} className="mt-6 w-full text-indigo-600 dark:text-indigo-400 text-sm hover:underline font-medium transition">{isRegister ? 'لديك حساب؟ سجل دخول' : 'ليس لديك حساب؟'}</button>
                         </div>
@@ -152,21 +172,24 @@
             );
         };
 
-        // 2. Pomodoro
-        const PomodoroTimer = () => {
+        // 2. Pomodoro (Updated to use custom alert)
+        const PomodoroTimer = ({ showAlert }) => {
             const [timeLeft, setTimeLeft] = useState(25 * 60);
             const [isActive, setIsActive] = useState(false);
             const [mode, setMode] = useState('focus'); 
+            
             useEffect(() => {
                 let interval = null;
                 if (isActive && timeLeft > 0) interval = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
                 else if (timeLeft === 0) {
                     setIsActive(false);
                     new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(()=>{});
-                    alert("انتهى الوقت!");
+                    // استبدال alert بـ showAlert
+                    showAlert("انتهى الوقت!", "لقد انتهت جلسة التركيز، خذ قسطاً من الراحة.", "info", () => {});
                 }
                 return () => clearInterval(interval);
             }, [isActive, timeLeft, mode]);
+
             const switchMode = (m) => { setMode(m); setIsActive(false); setTimeLeft(m === 'focus' ? 25 * 60 : 5 * 60); };
             const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -191,12 +214,13 @@
             );
         };
 
-        // 3. Exams
-        const ExamsView = ({ user }) => {
+        // 3. Exams (Updated with showAlert)
+        const ExamsView = ({ user, showAlert }) => {
             const [exams, setExams] = useState([]);
             const [loading, setLoading] = useState(true);
             const [newExam, setNewExam] = useState({ subject: '', type: 'Final', date: '', location: '' });
             const [isAdding, setIsAdding] = useState(false);
+            
             useEffect(() => {
                 const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), (s) => {
                     const data = s.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -204,8 +228,16 @@
                 });
                 return () => unsub();
             }, [user]);
+
             const addExam = async (e) => { e.preventDefault(); if(!newExam.subject || !newExam.date) return; setIsAdding(true); try { await window.fb.addDoc(window.fb.collection(window.fb.db, "exams"), { uid: user.uid, ...newExam, createdAt: new Date() }); setNewExam({ subject: '', type: 'Final', date: '', location: '' }); } catch(err) {} finally { setIsAdding(false); } };
-            const deleteExam = async (id) => { if(confirm("حذف الامتحان؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exams", id)); };
+            
+            const deleteExam = (id) => {
+                // استبدال confirm بـ showAlert
+                showAlert("حذف الامتحان", "هل أنت متأكد من حذف هذا الامتحان؟ لا يمكن التراجع.", "danger", async () => {
+                    await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exams", id));
+                });
+            };
+            
             const getTimeLeft = (d) => { const t = Date.parse(d) - Date.parse(new Date()); return { t, days: Math.floor(t / (1000*60*60*24)), hours: Math.floor((t / (1000*60*60)) % 24) }; };
 
             return (
@@ -235,8 +267,8 @@
             );
         };
 
-        // 4. Courses
-        const CoursesView = ({ user }) => {
+        // 4. Courses (Updated with showAlert)
+        const CoursesView = ({ user, showAlert }) => {
             const [courses, setCourses] = useState([]);
             const [loading, setLoading] = useState(true);
             const [isAdding, setIsAdding] = useState(false);
@@ -257,7 +289,13 @@
 
             const handleAdd = async (e) => { e.preventDefault(); if(!newCourse.name) return; setIsAdding(true); try { await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { uid: user.uid, ...newCourse, absences: 0, createdAt: new Date() }); setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' }); } catch (error) {} finally { setIsAdding(false); } };
             const updateAbsence = async (c, ch) => { const n = (c.absences||0)+ch; if(n<0) return; await window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: n }); };
-            const handleDelete = async (id) => { if(confirm("حذف المادة؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id)); };
+            
+            const handleDelete = (id) => {
+                // استبدال confirm بـ showAlert
+                showAlert("حذف المادة", "هل أنت متأكد من حذف هذه المادة؟ سيتم حذف سجل الحضور أيضاً.", "danger", async () => {
+                    await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id));
+                });
+            };
 
             return (
                 <div className="space-y-6 animate-fade-in">
@@ -300,20 +338,28 @@
             );
         };
 
-        // 5. Tasks
-        const TasksView = ({ user }) => {
+        // 5. Tasks (Updated with showAlert)
+        const TasksView = ({ user, showAlert }) => {
             const [tasks, setTasks] = useState([]);
             const [newTask, setNewTask] = useState('');
             const [loading, setLoading] = useState(true);
+            
             useEffect(() => {
                 const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid)), s => {
                     setTasks(s.docs.map(doc => ({id:doc.id, ...doc.data()})).sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
                 });
                 return () => unsub();
             }, [user]);
+
             const add = async (e) => { e.preventDefault(); if(newTask.trim()) { await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), {uid:user.uid, title:newTask, completed:false, createdAt:new Date()}); setNewTask(''); } };
             const toggle = async (t) => await window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", t.id), {completed: !t.completed});
-            const del = async (id) => await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
+            
+            const del = (id) => {
+                 // استبدال confirm بـ showAlert
+                 showAlert("حذف المهمة", "هل تريد حذف هذه المهمة نهائياً؟", "danger", async () => {
+                    await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
+                 });
+            };
 
             return (
                 <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
@@ -327,12 +373,11 @@
             );
         };
 
-        // 6. Home (تم التعديل لعرض الاسم)
-        const HomeView = ({ user, setTab }) => {
+        // 6. Home (Updated)
+        const HomeView = ({ user, setTab, showAlert }) => {
             const [stats, setStats] = useState({ courses: 0, tasks: 0 });
             const [nextExam, setNextExam] = useState(null);
             
-            // استخراج الاسم الأول
             const displayName = user.displayName ? user.displayName.split(' ')[0] : '';
 
             useEffect(() => {
@@ -349,7 +394,7 @@
                         <i data-lucide="award" className="absolute left-4 bottom-[-20px] w-32 h-32 text-white opacity-10 transform rotate-12"></i>
                     </div>
                     {nextExam && <div onClick={()=>setTab('exams')} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-red-100 transition"><div className="flex items-center gap-3"><div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 animate-pulse-slow"><i data-lucide="alarm-clock" className="w-6 h-6"></i></div><div><div className="text-red-800 dark:text-red-300 font-bold text-sm uppercase">القادم</div><div className="text-slate-900 dark:text-white font-bold">{nextExam.subject}</div></div></div><div className="text-left"><div className="text-2xl font-bold font-mono text-slate-800 dark:text-white">{Math.ceil((new Date(nextExam.date)-new Date())/(1000*60*60*24))}</div><div className="text-[10px] uppercase font-bold text-slate-500">أيام</div></div></div>}
-                    <PomodoroTimer />
+                    <PomodoroTimer showAlert={showAlert} />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div onClick={()=>setTab('courses')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm cursor-pointer hover:shadow-md transition"><div className="flex justify-between items-center mb-4"><div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><i data-lucide="book-open" className="w-8 h-8 text-blue-600 dark:text-blue-400"></i></div><span className="text-4xl font-bold text-slate-800 dark:text-white">{stats.courses}</span></div><h3 className="text-slate-500 dark:text-dark-muted font-bold">مواد مسجلة</h3></div>
                         <div onClick={()=>setTab('tasks')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm cursor-pointer hover:shadow-md transition"><div className="flex justify-between items-center mb-4"><div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-xl"><i data-lucide="check-square" className="w-8 h-8 text-orange-600 dark:text-orange-400"></i></div><span className="text-4xl font-bold text-slate-800 dark:text-white">{stats.tasks}</span></div><h3 className="text-slate-500 dark:text-dark-muted font-bold">مهام معلقة</h3></div>
@@ -358,26 +403,65 @@
             );
         };
 
-        // 7. Dashboard Layout
+        // 7. Dashboard Layout (Controls the Modal State)
         const Dashboard = ({ user }) => {
             const [activeTab, setActiveTab] = useState('home');
             const [showMobileMenu, setShowMobileMenu] = useState(false);
             const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+            
+            // --- Modal State Management ---
+            const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'danger', onConfirm: null });
+
+            // The function we will pass down to all children
+            const showAlert = (title, message, type = 'danger', onConfirm) => {
+                setModalConfig({ isOpen: true, title, message, type, onConfirm });
+            };
+
+            const closeAlert = () => {
+                setModalConfig({ ...modalConfig, isOpen: false });
+            };
+
+            const handleConfirm = () => {
+                if(modalConfig.onConfirm) modalConfig.onConfirm();
+                closeAlert();
+            };
+            // -----------------------------
+
             useEffect(() => { if(darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); localStorage.setItem('theme', darkMode ? 'dark' : 'light'); }, [darkMode]);
             useEffect(() => { setTimeout(() => window.lucide.createIcons(), 50); }, [activeTab, showMobileMenu]);
+            
             const NavItem = ({ id, icon, label }) => ( <button onClick={() => { setActiveTab(id); setShowMobileMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-bg'}`}><i data-lucide={icon} className="w-5 h-5"></i><span>{label}</span></button> );
 
             return (
                 <div className="min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors flex">
+                    {/* Inject Modal Here */}
+                    <ConfirmModal 
+                        isOpen={modalConfig.isOpen}
+                        title={modalConfig.title}
+                        message={modalConfig.message}
+                        type={modalConfig.type}
+                        onConfirm={handleConfirm}
+                        onCancel={closeAlert}
+                    />
+
                     <aside className="hidden md:flex flex-col w-72 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border p-6 shadow-sm z-50 sticky top-0 h-screen">
                         <div className="flex items-center gap-3 px-2 mb-10"><div className="bg-indigo-600 p-2 rounded-lg shadow-lg"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div><span className="font-bold text-2xl text-slate-800 dark:text-white">جامعتي</span></div>
                         <nav className="flex-1 space-y-2"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /></nav>
-                        <div className="pt-6 border-t border-slate-100 dark:border-dark-border space-y-3"><button onClick={()=>setDarkMode(!darkMode)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-dark-bg rounded-xl text-slate-600 dark:text-dark-muted font-bold"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5"></i>{darkMode?'نهاري':'ليلي'}</button><button onClick={()=>{if(confirm('خروج؟'))window.fb.signOut(window.fb.auth)}} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>
+                        <div className="pt-6 border-t border-slate-100 dark:border-dark-border space-y-3">
+                            <button onClick={()=>setDarkMode(!darkMode)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-dark-bg rounded-xl text-slate-600 dark:text-dark-muted font-bold"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5"></i>{darkMode?'نهاري':'ليلي'}</button>
+                            <button onClick={()=> showAlert("تسجيل الخروج", "هل تود تسجيل الخروج من حسابك؟", "danger", () => window.fb.signOut(window.fb.auth))} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button>
+                        </div>
                     </aside>
                     <div className="flex-1 flex flex-col h-screen overflow-hidden">
                         <header className="md:hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border p-4 flex justify-between items-center z-50 sticky top-0 shadow-sm"><div className="flex items-center gap-2"><i data-lucide="graduation-cap" className="text-indigo-600 dark:text-indigo-400 w-6 h-6"></i><span className="font-bold text-lg text-slate-800 dark:text-white">جامعتي</span></div><div className="flex gap-2"><button onClick={()=>setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5 text-slate-600 dark:text-dark-muted"></i></button><button onClick={()=>setShowMobileMenu(!showMobileMenu)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={showMobileMenu?"x":"menu"} className="w-6 h-6 text-slate-600 dark:text-dark-muted"></i></button></div></header>
-                        {showMobileMenu && <div className="md:hidden fixed inset-0 top-[60px] bg-white dark:bg-dark-card z-40 p-4 space-y-2 animate-in slide-in-from-top-2 border-t dark:border-dark-border"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /><div className="h-px bg-slate-100 dark:bg-dark-border my-4"></div><button onClick={()=>window.fb.signOut(window.fb.auth)} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>}
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-20"><div className="max-w-5xl mx-auto">{activeTab==='home'&&<HomeView user={user} setTab={setActiveTab}/>}{activeTab==='exams'&&<ExamsView user={user}/>}{activeTab==='courses'&&<CoursesView user={user}/>}{activeTab==='tasks'&&<TasksView user={user}/>}</div></main>
+                        {showMobileMenu && <div className="md:hidden fixed inset-0 top-[60px] bg-white dark:bg-dark-card z-40 p-4 space-y-2 animate-in slide-in-from-top-2 border-t dark:border-dark-border"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /><div className="h-px bg-slate-100 dark:bg-dark-border my-4"></div><button onClick={()=> showAlert("تسجيل الخروج", "هل تود تسجيل الخروج؟", "danger", () => window.fb.signOut(window.fb.auth))} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>}
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-20"><div className="max-w-5xl mx-auto">
+                            {/* Pass showAlert to all sub-components */}
+                            {activeTab==='home'&&<HomeView user={user} setTab={setActiveTab} showAlert={showAlert}/>}
+                            {activeTab==='exams'&&<ExamsView user={user} showAlert={showAlert}/>}
+                            {activeTab==='courses'&&<CoursesView user={user} showAlert={showAlert}/>}
+                            {activeTab==='tasks'&&<TasksView user={user} showAlert={showAlert}/>}
+                        </div></main>
                     </div>
                 </div>
             );
