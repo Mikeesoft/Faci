@@ -5,21 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>جامعتي - النظام المتكامل</title>
     
-    <!-- React & DOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
-    <!-- Configuration -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -69,10 +64,10 @@
 <body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text selection:bg-indigo-500 selection:text-white overflow-x-hidden">
     <div id="root"></div>
 
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // تم إضافة updateProfile هنا
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -89,20 +84,21 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc };
+        // تم إضافة updateProfile هنا أيضاً
+        window.fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc };
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
-    <!-- React Application -->
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
         // --- Components ---
         const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل...</p></div>;
 
-        // 1. Auth Screen
+        // 1. Auth Screen (تم التعديل لإضافة الاسم)
         const AuthScreen = () => {
             const [isRegister, setIsRegister] = useState(false);
+            const [name, setName] = useState('');
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
@@ -111,10 +107,19 @@
             const handleSubmit = async (e) => {
                 e.preventDefault(); setError(''); setLoading(true);
                 try {
-                    const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
-                    if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
-                    else await signInWithEmailAndPassword(auth, email, password);
-                } catch (err) { setError("يرجى التحقق من البيانات والاتصال."); } 
+                    const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } = window.fb;
+                    if (isRegister) {
+                        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                        if(name) {
+                            await updateProfile(userCredential.user, { displayName: name });
+                        }
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                } catch (err) { 
+                    console.error(err);
+                    setError("يرجى التحقق من البيانات والاتصال."); 
+                } 
                 finally { setLoading(false); }
             };
 
@@ -128,9 +133,12 @@
                             <p className="text-indigo-100 text-sm relative z-10">بوابتك الذكية للحياة الجامعية</p>
                         </div>
                         <div className="p-8">
-                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب' : 'تسجيل الدخول'}</h2>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
                             {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm mb-4 border border-red-100 dark:border-red-900 flex items-center gap-2"><i data-lucide="alert-circle" className="w-4 h-4"></i>{error}</div>}
                             <form onSubmit={handleSubmit} className="space-y-4">
+                                {isRegister && (
+                                    <input type="text" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={name} onChange={e => setName(e.target.value)} placeholder="الاسم (مثلاً: أحمد)" />
+                                )}
                                 <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} placeholder="البريد الإلكتروني" />
                                 <input type="password" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
                                 <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2">
@@ -227,7 +235,7 @@
             );
         };
 
-        // 4. Courses (Complete Features)
+        // 4. Courses
         const CoursesView = ({ user }) => {
             const [courses, setCourses] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -319,10 +327,14 @@
             );
         };
 
-        // 6. Home
+        // 6. Home (تم التعديل لعرض الاسم)
         const HomeView = ({ user, setTab }) => {
             const [stats, setStats] = useState({ courses: 0, tasks: 0 });
             const [nextExam, setNextExam] = useState(null);
+            
+            // استخراج الاسم الأول
+            const displayName = user.displayName ? user.displayName.split(' ')[0] : '';
+
             useEffect(() => {
                 const u1 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), s => setStats(p => ({...p, courses: s.size})));
                 const u2 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid), window.fb.where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
@@ -333,7 +345,7 @@
             return (
                 <div className="space-y-8 animate-fade-in">
                     <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
-                        <div className="relative z-10"><h1 className="text-3xl font-bold mb-2">مرحباً 👋</h1><p className="text-indigo-100 opacity-90">يوم رائع للإنجاز!</p></div>
+                        <div className="relative z-10"><h1 className="text-3xl font-bold mb-2">مرحباً {displayName} 👋</h1><p className="text-indigo-100 opacity-90">يوم رائع للإنجاز!</p></div>
                         <i data-lucide="award" className="absolute left-4 bottom-[-20px] w-32 h-32 text-white opacity-10 transform rotate-12"></i>
                     </div>
                     {nextExam && <div onClick={()=>setTab('exams')} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-red-100 transition"><div className="flex items-center gap-3"><div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 animate-pulse-slow"><i data-lucide="alarm-clock" className="w-6 h-6"></i></div><div><div className="text-red-800 dark:text-red-300 font-bold text-sm uppercase">القادم</div><div className="text-slate-900 dark:text-white font-bold">{nextExam.subject}</div></div></div><div className="text-left"><div className="text-2xl font-bold font-mono text-slate-800 dark:text-white">{Math.ceil((new Date(nextExam.date)-new Date())/(1000*60*60*24))}</div><div className="text-[10px] uppercase font-bold text-slate-500">أيام</div></div></div>}
