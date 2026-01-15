@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جامعتي - النسخة المطورة</title>
+    <title>جامعتي - النظام المتكامل</title>
     
+    <!-- React & DOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
+    <!-- Configuration -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -23,20 +28,22 @@
                     fontFamily: { sans: ['Tajawal', 'sans-serif'] },
                     colors: {
                         dark: {
-                            bg: '#0f172a',
-                            card: '#1e293b',
-                            border: '#334155',
-                            text: '#f8fafc',
-                            muted: '#94a3b8'
+                            bg: '#0f172a',      // Slate 900
+                            card: '#1e293b',    // Slate 800
+                            border: '#334155',  // Slate 700
+                            text: '#f8fafc',    // Slate 50
+                            muted: '#94a3b8'    // Slate 400
                         }
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.5s ease-out',
-                        'slide-up': 'slideUp 0.4s ease-out',
+                        'fade-in': 'fadeIn 0.4s ease-out',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(10px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(5px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
                     }
                 }
             }
@@ -44,16 +51,25 @@
     </script>
 
     <style>
-        body { font-family: 'Tajawal', sans-serif; transition: all 0.3s; -webkit-tap-highlight-color: transparent; }
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
-        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        .dark .glass-effect { background: rgba(30, 41, 59, 0.8); }
+        body { font-family: 'Tajawal', sans-serif; transition: background-color 0.3s, color 0.3s; -webkit-tap-highlight-color: transparent; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Prevent input zoom on mobile */
+        input, select, textarea { font-size: 16px !important; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text overflow-x-hidden">
+<body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text selection:bg-indigo-500 selection:text-white overflow-x-hidden">
     <div id="root"></div>
 
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -77,19 +93,14 @@
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
+    <!-- React Application -->
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
+        // --- Components ---
+        const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل...</p></div>;
 
-        // --- Shared Components ---
-        const Card = ({ children, className = "" }) => (
-            <div className={`bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-slate-100 dark:border-dark-border p-5 ${className}`}>
-                {children}
-            </div>
-        );
-
-        // --- Auth Screen (Same Logic, Refined UI) ---
+        // 1. Auth Screen
         const AuthScreen = () => {
             const [isRegister, setIsRegister] = useState(false);
             const [email, setEmail] = useState('');
@@ -103,225 +114,268 @@
                     const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
                     if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
                     else await signInWithEmailAndPassword(auth, email, password);
-                } catch (err) { setError("فشل الاتصال. تأكد من البيانات."); } 
+                } catch (err) { setError("يرجى التحقق من البيانات والاتصال."); } 
                 finally { setLoading(false); }
             };
 
             return (
-                <div className="min-h-screen flex items-center justify-center p-6 bg-slate-100 dark:bg-dark-bg">
-                    <div className="w-full max-w-md animate-slide-up">
-                        <Card className="p-8 border-t-4 border-t-indigo-600">
-                            <div className="text-center mb-8">
-                                <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-200">
-                                    <i data-lucide="graduation-cap" className="w-10 h-10 text-white"></i>
-                                </div>
-                                <h1 className="text-2xl font-black text-slate-800 dark:text-white">جامعتي الذكية</h1>
-                            </div>
+                <div className="min-h-screen bg-slate-100 dark:bg-dark-bg flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-dark-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border dark:border-dark-border">
+                        <div className="bg-indigo-600 p-8 text-center relative overflow-hidden">
+                            <div className="absolute inset-0 bg-white/5 transform skew-y-6 scale-150"></div>
+                            <i data-lucide="graduation-cap" className="w-14 h-14 text-white mx-auto mb-3 relative z-10"></i>
+                            <h1 className="text-2xl font-bold text-white relative z-10">جامعتي</h1>
+                            <p className="text-indigo-100 text-sm relative z-10">بوابتك الذكية للحياة الجامعية</p>
+                        </div>
+                        <div className="p-8">
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-6 text-center">{isRegister ? 'إنشاء حساب' : 'تسجيل الدخول'}</h2>
+                            {error && <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm mb-4 border border-red-100 dark:border-red-900 flex items-center gap-2"><i data-lucide="alert-circle" className="w-4 h-4"></i>{error}</div>}
                             <form onSubmit={handleSubmit} className="space-y-4">
-                                <input type="email" placeholder="البريد الإلكتروني" className="w-full p-4 rounded-xl bg-slate-50 dark:bg-dark-bg border border-slate-200 dark:border-dark-border outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} required />
-                                <input type="password" placeholder="كلمة المرور" className="w-full p-4 rounded-xl bg-slate-50 dark:bg-dark-bg border border-slate-200 dark:border-dark-border outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} required />
-                                <button className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition transform active:scale-95 flex justify-center">
-                                    {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : (isRegister ? 'إنشاء حساب جديد' : 'دخول للمنصة')}
+                                <input type="email" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={email} onChange={e => setEmail(e.target.value)} placeholder="البريد الإلكتروني" />
+                                <input type="password" required className="w-full h-12 px-4 border border-slate-200 dark:border-dark-border rounded-xl bg-white dark:bg-dark-bg dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition" value={password} onChange={e => setPassword(e.target.value)} placeholder="كلمة المرور" />
+                                <button disabled={loading} className="w-full h-12 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 active:scale-95 transition flex justify-center items-center gap-2">
+                                    {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}
                                 </button>
                             </form>
-                            <button onClick={() => setIsRegister(!isRegister)} className="w-full mt-6 text-indigo-600 font-medium hover:underline">{isRegister ? 'لديك حساب؟ سجل دخول' : 'مستخدم جديد؟ ابدأ من هنا'}</button>
-                        </Card>
+                            <button onClick={() => {setIsRegister(!isRegister); setError('');}} className="mt-6 w-full text-indigo-600 dark:text-indigo-400 text-sm hover:underline font-medium transition">{isRegister ? 'لديك حساب؟ سجل دخول' : 'ليس لديك حساب؟'}</button>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // --- New: Weekly Schedule Component ---
-        const ScheduleView = ({ courses }) => {
-            const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'السبت'];
+        // 2. Pomodoro
+        const PomodoroTimer = () => {
+            const [timeLeft, setTimeLeft] = useState(25 * 60);
+            const [isActive, setIsActive] = useState(false);
+            const [mode, setMode] = useState('focus'); 
+            useEffect(() => {
+                let interval = null;
+                if (isActive && timeLeft > 0) interval = setInterval(() => setTimeLeft(timeLeft - 1), 1000);
+                else if (timeLeft === 0) {
+                    setIsActive(false);
+                    new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(()=>{});
+                    alert("انتهى الوقت!");
+                }
+                return () => clearInterval(interval);
+            }, [isActive, timeLeft, mode]);
+            const switchMode = (m) => { setMode(m); setIsActive(false); setTimeLeft(m === 'focus' ? 25 * 60 : 5 * 60); };
+            const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+
             return (
-                <div className="space-y-6 animate-fade-in">
-                    <h2 className="text-2xl font-bold">الجدول الدراسي</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {days.map(day => (
-                            <Card key={day} className="border-r-4 border-r-indigo-500">
-                                <h3 className="font-bold text-indigo-600 mb-4 flex items-center gap-2"><i data-lucide="calendar-days" className="w-4 h-4"></i> {day}</h3>
-                                <div className="space-y-3">
-                                    {courses.filter(c => c.day === day).length > 0 ? (
-                                        courses.filter(c => c.day === day).map((c, i) => (
-                                            <div key={i} className="p-3 bg-slate-50 dark:bg-dark-bg rounded-lg">
-                                                <p className="font-bold text-sm">{c.name}</p>
-                                                <p className="text-xs text-slate-500">{c.doctor || 'دكتور المادة'}</p>
-                                            </div>
-                                        ))
-                                    ) : <p className="text-xs text-slate-400 italic">لا يوجد محاضرات</p>}
-                                </div>
-                            </Card>
-                        ))}
+                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-dark-border mb-8 animate-fade-in relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                    <div className="flex justify-between items-center mb-6 relative z-10">
+                        <h3 className="font-bold text-lg dark:text-white flex items-center gap-2"><i data-lucide="timer" className="w-5 h-5 text-indigo-500"></i> مؤقت الإنجاز</h3>
+                        <div className="flex bg-slate-100 dark:bg-dark-bg p-1 rounded-lg">
+                            <button onClick={()=>switchMode('focus')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${mode==='focus'?'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm':'text-slate-500 dark:text-dark-muted'}`}>مذاكرة</button>
+                            <button onClick={()=>switchMode('break')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${mode==='break'?'bg-white dark:bg-emerald-600 text-emerald-600 dark:text-white shadow-sm':'text-slate-500 dark:text-dark-muted'}`}>راحة</button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col items-center relative z-10">
+                        <div className="text-6xl md:text-7xl font-bold font-mono text-slate-800 dark:text-white mb-6 tracking-tighter">{formatTime(timeLeft)}</div>
+                        <div className="flex gap-4">
+                            <button onClick={()=>setIsActive(!isActive)} className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition transform active:scale-95 ${isActive ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}><i data-lucide={isActive ? "pause" : "play"} className="w-6 h-6 fill-current"></i></button>
+                            <button onClick={()=>{setIsActive(false); setTimeLeft(mode==='focus'?25*60:5*60)}} className="w-14 h-14 rounded-full bg-slate-100 dark:bg-dark-bg text-slate-600 dark:text-dark-muted flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-800 transition"><i data-lucide="rotate-ccw" className="w-6 h-6"></i></button>
+                        </div>
                     </div>
                 </div>
             );
-        }
+        };
 
-        // --- Main Dashboard Logic ---
-        const Dashboard = ({ user }) => {
-            const [activeTab, setActiveTab] = useState('home');
-            const [courses, setCourses] = useState([]);
-            const [tasks, setTasks] = useState([]);
+        // 3. Exams
+        const ExamsView = ({ user }) => {
             const [exams, setExams] = useState([]);
-            const [darkMode, setDarkMode] = useState(localStorage.getItem('theme') === 'dark');
-
-            // Global Data Sync
+            const [loading, setLoading] = useState(true);
+            const [newExam, setNewExam] = useState({ subject: '', type: 'Final', date: '', location: '' });
+            const [isAdding, setIsAdding] = useState(false);
             useEffect(() => {
-                const qC = window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid));
-                const qT = window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid));
-                const qE = window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid));
-                
-                const u1 = window.fb.onSnapshot(qC, s => setCourses(s.docs.map(d => ({id:d.id, ...d.data()}))));
-                const u2 = window.fb.onSnapshot(qT, s => setTasks(s.docs.map(d => ({id:d.id, ...d.data()}))));
-                const u3 = window.fb.onSnapshot(qE, s => setExams(s.docs.map(d => ({id:d.id, ...d.data()}))));
-                
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), (s) => {
+                    const data = s.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => new Date(a.date) - new Date(b.date));
+                    setExams(data); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
+                });
+                return () => unsub();
+            }, [user]);
+            const addExam = async (e) => { e.preventDefault(); if(!newExam.subject || !newExam.date) return; setIsAdding(true); try { await window.fb.addDoc(window.fb.collection(window.fb.db, "exams"), { uid: user.uid, ...newExam, createdAt: new Date() }); setNewExam({ subject: '', type: 'Final', date: '', location: '' }); } catch(err) {} finally { setIsAdding(false); } };
+            const deleteExam = async (id) => { if(confirm("حذف الامتحان؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exams", id)); };
+            const getTimeLeft = (d) => { const t = Date.parse(d) - Date.parse(new Date()); return { t, days: Math.floor(t / (1000*60*60*24)), hours: Math.floor((t / (1000*60*60)) % 24) }; };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">غرفة الامتحانات</h2><span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs font-bold">{exams.length} قادمة</span></div>
+                    <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-dark-border">
+                        <h3 className="font-bold text-slate-700 dark:text-white mb-4 text-sm flex items-center gap-2"><i data-lucide="calendar-plus" className="w-4 h-4"></i> إضافة امتحان</h3>
+                        <form onSubmit={addExam} className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <input className="col-span-2 md:col-span-2 w-full h-11 px-3 border rounded-lg dark:bg-dark-bg dark:border-dark-border dark:text-white" placeholder="المادة" required value={newExam.subject} onChange={e => setNewExam({...newExam, subject: e.target.value})} />
+                            <select className="w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-bg dark:border-dark-border dark:text-white" value={newExam.type} onChange={e => setNewExam({...newExam, type: e.target.value})}><option value="Final">Final</option><option value="Midterm">Midterm</option><option value="Quiz">Quiz</option></select>
+                            <input type="datetime-local" className="col-span-2 md:col-span-1 w-full h-11 px-3 border rounded-lg dark:bg-dark-bg dark:border-dark-border dark:text-white" required value={newExam.date} onChange={e => setNewExam({...newExam, date: e.target.value})} />
+                            <input className="w-full h-11 px-3 border rounded-lg dark:bg-dark-bg dark:border-dark-border dark:text-white" placeholder="القاعة" value={newExam.location} onChange={e => setNewExam({...newExam, location: e.target.value})} />
+                            <button disabled={isAdding} className="col-span-2 md:col-span-5 h-11 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition flex items-center justify-center">{isAdding ? '...' : 'حفظ'}</button>
+                        </form>
+                    </div>
+                    {loading ? <div className="text-center p-10 text-slate-400">جاري التحميل...</div> : <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{exams.map(exam => {
+                        const { t, days, hours } = getTimeLeft(exam.date);
+                        const isPassed = t < 0; const isUrgent = days < 1;
+                        return (
+                            <div key={exam.id} className={`p-5 rounded-xl border relative overflow-hidden transition-all ${isPassed ? 'bg-slate-100 dark:bg-dark-bg border-slate-200 opacity-70' : isUrgent ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-dark-card border-slate-200 dark:border-dark-border'}`}>
+                                <div className="flex justify-between items-start mb-4 relative z-10"><div><div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-lg text-slate-800 dark:text-white">{exam.subject}</h3><span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${exam.type==='Final'?'bg-red-100 text-red-700':'bg-blue-100 text-blue-700'}`}>{exam.type}</span></div><p className="text-sm text-slate-500 dark:text-dark-muted flex items-center gap-2"><i data-lucide="map-pin" className="w-3 h-3"></i> {exam.location||'-'} <i data-lucide="calendar" className="w-3 h-3 ml-2"></i> {new Date(exam.date).toLocaleDateString('ar-EG')}</p></div><button onClick={() => deleteExam(exam.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4 h-4"></i></button></div>
+                                <div className="flex items-center gap-4 border-t border-slate-200 dark:border-dark-border pt-3">{!isPassed ? <><div className="flex-1 text-center"><div className={`text-2xl font-bold font-mono ${isUrgent?'text-red-600 animate-pulse':'text-slate-800 dark:text-white'}`}>{days}</div><div className="text-[10px] text-slate-400 uppercase font-bold">يوم</div></div><div className="w-px h-8 bg-slate-200 dark:bg-dark-border"></div><div className="flex-1 text-center"><div className={`text-2xl font-bold font-mono ${isUrgent?'text-red-600':'text-slate-800 dark:text-white'}`}>{hours}</div><div className="text-[10px] text-slate-400 uppercase font-bold">ساعة</div></div></> : <div className="w-full text-center text-slate-400 font-bold">انتهى</div>}</div>
+                            </div>
+                        );
+                    })}</div>}
+                </div>
+            );
+        };
+
+        // 4. Courses (Complete Features)
+        const CoursesView = ({ user }) => {
+            const [courses, setCourses] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [isAdding, setIsAdding] = useState(false);
+            const [newCourse, setNewCourse] = useState({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' });
+            const gradePoints = { 'A+': 4.0, 'A': 3.75, 'B+': 3.5, 'B': 3.0, 'C+': 2.5, 'C': 2.0, 'D+': 1.5, 'D': 1.0, 'F': 0 };
+
+            useEffect(() => {
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), (s) => {
+                    setCourses(s.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
+                });
+                return () => unsub();
+            }, [user]);
+
+            const gpa = useMemo(() => {
+                let tP=0, tC=0; courses.forEach(c => { if(c.grade && gradePoints[c.grade] !== undefined) { const cr = parseFloat(c.credits||0); tP+=gradePoints[c.grade]*cr; tC+=cr; } });
+                return tC===0 ? "0.00" : (tP/tC).toFixed(2);
+            }, [courses]);
+
+            const handleAdd = async (e) => { e.preventDefault(); if(!newCourse.name) return; setIsAdding(true); try { await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { uid: user.uid, ...newCourse, absences: 0, createdAt: new Date() }); setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' }); } catch (error) {} finally { setIsAdding(false); } };
+            const updateAbsence = async (c, ch) => { const n = (c.absences||0)+ch; if(n<0) return; await window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: n }); };
+            const handleDelete = async (id) => { if(confirm("حذف المادة؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id)); };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                        <div><h2 className="text-2xl font-bold text-slate-800 dark:text-white">المواد الدراسية</h2><p className="text-slate-500 dark:text-dark-muted text-sm mt-1">تتبع الحضور والدرجات</p></div>
+                        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-3 rounded-2xl shadow-lg flex items-center gap-4">
+                            <div><div className="text-xs opacity-80 font-bold uppercase">المعدل (GPA)</div><div className="text-2xl font-bold font-mono">{gpa}</div></div>
+                            <div className="h-10 w-px bg-white/20"></div>
+                            <div className="text-center"><div className="text-xs opacity-80 font-bold">المواد</div><div className="text-xl font-bold">{courses.length}</div></div>
+                        </div>
+                    </div>
+                    <div className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-dark-border">
+                        <h3 className="font-bold text-slate-700 dark:text-white mb-4 text-sm flex items-center gap-2"><i data-lucide="plus-circle" className="w-4 h-4"></i> إضافة مادة</h3>
+                        <form onSubmit={handleAdd} className="grid grid-cols-2 md:grid-cols-12 gap-3">
+                            <input className="col-span-2 md:col-span-3 w-full h-11 px-3 border rounded-lg dark:bg-dark-bg dark:border-dark-border dark:text-white outline-none" placeholder="الاسم" required value={newCourse.name} onChange={e=>setNewCourse({...newCourse, name: e.target.value})} />
+                            <input className="col-span-2 md:col-span-2 w-full h-11 px-3 border rounded-lg dark:bg-dark-bg dark:border-dark-border dark:text-white outline-none" placeholder="المحاضر" value={newCourse.doctor} onChange={e=>setNewCourse({...newCourse, doctor: e.target.value})} />
+                            <select className="col-span-1 md:col-span-2 w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-bg dark:border-dark-border dark:text-white" value={newCourse.day} onChange={e=>setNewCourse({...newCourse, day: e.target.value})}>{['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'].map(d=><option key={d} value={d}>{d}</option>)}</select>
+                            <select className="col-span-1 md:col-span-1 w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-bg dark:border-dark-border dark:text-white" value={newCourse.credits} onChange={e=>setNewCourse({...newCourse, credits: e.target.value})}><option value="1">1س</option><option value="2">2س</option><option value="3">3س</option><option value="4">4س</option></select>
+                            <select className="col-span-1 md:col-span-1 w-full h-11 px-3 border rounded-lg bg-white dark:bg-dark-bg dark:border-dark-border dark:text-white" value={newCourse.grade} onChange={e=>setNewCourse({...newCourse, grade: e.target.value})}><option value="">الدرجة</option>{Object.keys(gradePoints).map(g=><option key={g} value={g}>{g}</option>)}</select>
+                            <input className="col-span-1 md:col-span-1 w-full h-11 px-3 border rounded-lg dark:bg-dark-bg dark:border-dark-border dark:text-white" type="number" min="1" placeholder="الغياب" value={newCourse.maxAbsence} onChange={e=>setNewCourse({...newCourse, maxAbsence: parseInt(e.target.value)})} />
+                            <button disabled={isAdding} className="col-span-2 md:col-span-2 h-11 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition flex items-center justify-center">{isAdding?'...':'حفظ'}</button>
+                        </form>
+                    </div>
+                    {loading ? <div className="text-center text-slate-400">تحميل...</div> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{courses.map(course => {
+                        const absences = course.absences||0; const max = course.maxAbsence||4;
+                        const isDanger = absences >= max - 1; const isCritical = absences >= max;
+                        const progress = Math.min((absences/max)*100, 100);
+                        return (
+                            <div key={course.id} className={`bg-white dark:bg-dark-card p-5 rounded-xl shadow-sm border relative group transition-all ${isCritical ? 'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-900/10' : 'border-slate-100 dark:border-dark-border hover:border-indigo-300'}`}>
+                                <div className="flex justify-between items-start mb-2"><div><h3 className="font-bold text-lg text-slate-800 dark:text-white">{course.name}</h3><div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-dark-muted mt-2"><span className="bg-slate-100 dark:bg-dark-bg px-2 py-1 rounded">{course.day}</span>{course.grade && <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded font-bold">{course.grade}</span>}</div></div><button onClick={()=>handleDelete(course.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4 h-4"></i></button></div>
+                                <div className="bg-slate-50 dark:bg-dark-bg/50 rounded-lg p-3 border border-slate-100 dark:border-dark-border mt-3">
+                                    <div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-slate-600 dark:text-dark-muted">الغياب: {absences}/{max}</span><div className="flex gap-1"><button onClick={()=>updateAbsence(course, -1)} className="w-6 h-6 rounded bg-white dark:bg-dark-card shadow-sm flex items-center justify-center font-bold text-slate-600 dark:text-slate-300">-</button><button onClick={()=>updateAbsence(course, 1)} className="w-6 h-6 rounded bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">+</button></div></div>
+                                    <div className="w-full bg-slate-200 dark:bg-dark-border rounded-full h-1.5 overflow-hidden"><div className={`h-1.5 rounded-full transition-all duration-500 ${isDanger ? 'bg-red-500' : 'bg-indigo-500'}`} style={{ width: `${progress}%` }}></div></div>
+                                    {isDanger && <p className="text-[10px] text-red-600 dark:text-red-400 font-bold mt-2 flex items-center gap-1 animate-pulse"><i data-lucide="alert-triangle" className="w-3 h-3"></i> {isCritical ? 'تجاوزت الحد المسموح!' : 'انتبه! اقتربت من الحرمان'}</p>}
+                                </div>
+                            </div>
+                        );
+                    })}</div>}
+                </div>
+            );
+        };
+
+        // 5. Tasks
+        const TasksView = ({ user }) => {
+            const [tasks, setTasks] = useState([]);
+            const [newTask, setNewTask] = useState('');
+            const [loading, setLoading] = useState(true);
+            useEffect(() => {
+                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid)), s => {
+                    setTasks(s.docs.map(doc => ({id:doc.id, ...doc.data()})).sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
+                });
+                return () => unsub();
+            }, [user]);
+            const add = async (e) => { e.preventDefault(); if(newTask.trim()) { await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), {uid:user.uid, title:newTask, completed:false, createdAt:new Date()}); setNewTask(''); } };
+            const toggle = async (t) => await window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", t.id), {completed: !t.completed});
+            const del = async (id) => await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
+
+            return (
+                <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">المهام</h2>
+                    <form onSubmit={add} className="relative">
+                        <input className="w-full h-14 pl-14 pr-4 rounded-2xl border border-slate-200 dark:border-dark-border dark:bg-dark-card dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition" placeholder="مهمة جديدة..." value={newTask} onChange={e=>setNewTask(e.target.value)} />
+                        <button className="absolute left-2 top-2 bottom-2 bg-indigo-600 text-white px-4 rounded-xl font-bold"><i data-lucide="plus" className="w-5 h-5"></i></button>
+                    </form>
+                    <div className="space-y-3">{loading ? <p className="text-center text-slate-400">تحميل...</p> : tasks.map(t=>(<div key={t.id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${t.completed ? 'opacity-60 bg-slate-50 dark:bg-dark-bg' : 'bg-white dark:bg-dark-card shadow-sm border-slate-100 dark:border-dark-border'}`}><button onClick={()=>toggle(t)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${t.completed?'bg-green-500 border-green-500':'border-slate-300 dark:border-slate-500'}`}>{t.completed && <i data-lucide="check" className="w-3 h-3 text-white"></i>}</button><span className={`flex-1 font-medium ${t.completed?'line-through text-slate-400':'text-slate-800 dark:text-white'}`}>{t.title}</span><button onClick={()=>del(t.id)} className="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" className="w-4 h-4"></i></button></div>))}</div>
+                </div>
+            );
+        };
+
+        // 6. Home
+        const HomeView = ({ user, setTab }) => {
+            const [stats, setStats] = useState({ courses: 0, tasks: 0 });
+            const [nextExam, setNextExam] = useState(null);
+            useEffect(() => {
+                const u1 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), s => setStats(p => ({...p, courses: s.size})));
+                const u2 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid), window.fb.where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
+                const u3 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), s => { const e = s.docs.map(d=>d.data()).filter(x=>new Date(x.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)); setNextExam(e[0]); });
                 return () => { u1(); u2(); u3(); };
             }, [user]);
 
-            useEffect(() => {
-                document.documentElement.classList.toggle('dark', darkMode);
-                localStorage.setItem('theme', darkMode ? 'dark' : 'light');
-                setTimeout(() => window.lucide.createIcons(), 100);
-            }, [darkMode, activeTab]);
-
-            const NavItem = ({ id, icon, label }) => (
-                <button onClick={() => setActiveTab(id)} className={`flex items-center gap-3 px-5 py-4 rounded-2xl w-full transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-dark-bg'}`}>
-                    <i data-lucide={icon} className="w-5 h-5"></i>
-                    <span className="font-bold">{label}</span>
-                </button>
+            return (
+                <div className="space-y-8 animate-fade-in">
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
+                        <div className="relative z-10"><h1 className="text-3xl font-bold mb-2">مرحباً 👋</h1><p className="text-indigo-100 opacity-90">يوم رائع للإنجاز!</p></div>
+                        <i data-lucide="award" className="absolute left-4 bottom-[-20px] w-32 h-32 text-white opacity-10 transform rotate-12"></i>
+                    </div>
+                    {nextExam && <div onClick={()=>setTab('exams')} className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 p-4 rounded-xl flex items-center justify-between cursor-pointer hover:bg-red-100 transition"><div className="flex items-center gap-3"><div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-600 animate-pulse-slow"><i data-lucide="alarm-clock" className="w-6 h-6"></i></div><div><div className="text-red-800 dark:text-red-300 font-bold text-sm uppercase">القادم</div><div className="text-slate-900 dark:text-white font-bold">{nextExam.subject}</div></div></div><div className="text-left"><div className="text-2xl font-bold font-mono text-slate-800 dark:text-white">{Math.ceil((new Date(nextExam.date)-new Date())/(1000*60*60*24))}</div><div className="text-[10px] uppercase font-bold text-slate-500">أيام</div></div></div>}
+                    <PomodoroTimer />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div onClick={()=>setTab('courses')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm cursor-pointer hover:shadow-md transition"><div className="flex justify-between items-center mb-4"><div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-xl"><i data-lucide="book-open" className="w-8 h-8 text-blue-600 dark:text-blue-400"></i></div><span className="text-4xl font-bold text-slate-800 dark:text-white">{stats.courses}</span></div><h3 className="text-slate-500 dark:text-dark-muted font-bold">مواد مسجلة</h3></div>
+                        <div onClick={()=>setTab('tasks')} className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-slate-100 dark:border-dark-border shadow-sm cursor-pointer hover:shadow-md transition"><div className="flex justify-between items-center mb-4"><div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-xl"><i data-lucide="check-square" className="w-8 h-8 text-orange-600 dark:text-orange-400"></i></div><span className="text-4xl font-bold text-slate-800 dark:text-white">{stats.tasks}</span></div><h3 className="text-slate-500 dark:text-dark-muted font-bold">مهام معلقة</h3></div>
+                    </div>
+                </div>
             );
+        };
+
+        // 7. Dashboard Layout
+        const Dashboard = ({ user }) => {
+            const [activeTab, setActiveTab] = useState('home');
+            const [showMobileMenu, setShowMobileMenu] = useState(false);
+            const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
+            useEffect(() => { if(darkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); localStorage.setItem('theme', darkMode ? 'dark' : 'light'); }, [darkMode]);
+            useEffect(() => { setTimeout(() => window.lucide.createIcons(), 50); }, [activeTab, showMobileMenu]);
+            const NavItem = ({ id, icon, label }) => ( <button onClick={() => { setActiveTab(id); setShowMobileMenu(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === id ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-dark-muted hover:bg-slate-50 dark:hover:bg-dark-bg'}`}><i data-lucide={icon} className="w-5 h-5"></i><span>{label}</span></button> );
 
             return (
-                <div className="flex min-h-screen bg-slate-50 dark:bg-dark-bg">
-                    {/* Sidebar */}
-                    <aside className="hidden lg:flex flex-col w-72 p-6 border-l border-slate-200 dark:border-dark-border bg-white dark:bg-dark-card sticky top-0 h-screen">
-                        <div className="flex items-center gap-3 mb-10 px-2">
-                            <div className="bg-indigo-600 p-2 rounded-xl text-white"><i data-lucide="graduation-cap"></i></div>
-                            <h1 className="text-xl font-black">جامعتي</h1>
-                        </div>
-                        <nav className="space-y-2 flex-1">
-                            <NavItem id="home" icon="layout-dashboard" label="الرئيسية" />
-                            <NavItem id="schedule" icon="calendar" label="الجدول" />
-                            <NavItem id="courses" icon="book-open" label="المواد" />
-                            <NavItem id="exams" icon="alarm-clock" label="الامتحانات" />
-                            <NavItem id="tasks" icon="check-square" label="المهام" />
-                        </nav>
-                        <div className="space-y-4 pt-6 border-t dark:border-dark-border">
-                            <button onClick={() => setDarkMode(!darkMode)} className="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-50 dark:bg-dark-bg font-bold">
-                                <i data-lucide={darkMode ? "sun" : "moon"}></i> {darkMode ? 'الوضع النهاري' : 'الوضع الليلي'}
-                            </button>
-                            <button onClick={() => window.fb.signOut(window.fb.auth)} className="w-full text-red-500 p-4 font-bold flex items-center gap-3 hover:bg-red-50 rounded-xl">
-                                <i data-lucide="log-out"></i> خروج
-                            </button>
-                        </div>
+                <div className="min-h-screen bg-slate-50 dark:bg-dark-bg transition-colors flex">
+                    <aside className="hidden md:flex flex-col w-72 bg-white dark:bg-dark-card border-l border-slate-200 dark:border-dark-border p-6 shadow-sm z-50 sticky top-0 h-screen">
+                        <div className="flex items-center gap-3 px-2 mb-10"><div className="bg-indigo-600 p-2 rounded-lg shadow-lg"><i data-lucide="graduation-cap" className="text-white w-6 h-6"></i></div><span className="font-bold text-2xl text-slate-800 dark:text-white">جامعتي</span></div>
+                        <nav className="flex-1 space-y-2"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /></nav>
+                        <div className="pt-6 border-t border-slate-100 dark:border-dark-border space-y-3"><button onClick={()=>setDarkMode(!darkMode)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 dark:bg-dark-bg rounded-xl text-slate-600 dark:text-dark-muted font-bold"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5"></i>{darkMode?'نهاري':'ليلي'}</button><button onClick={()=>{if(confirm('خروج؟'))window.fb.signOut(window.fb.auth)}} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-sm font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>
                     </aside>
-
-                    {/* Main Content */}
-                    <main className="flex-1 p-4 lg:p-10 pb-24 overflow-y-auto">
-                        <div className="max-w-6xl mx-auto">
-                            {activeTab === 'home' && (
-                                <div className="space-y-8 animate-fade-in">
-                                    <div className="flex justify-between items-center">
-                                        <h2 className="text-3xl font-black">لوحة التحكم</h2>
-                                        <div className="text-sm font-bold bg-white dark:bg-dark-card px-4 py-2 rounded-full border border-slate-200 dark:border-dark-border">
-                                            {new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}
-                                        </div>
-                                    </div>
-
-                                    {/* Stats Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <Card className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none">
-                                            <p className="opacity-80 font-bold uppercase text-xs">المعدل التراكمي</p>
-                                            <h3 className="text-4xl font-black mt-2">3.85</h3>
-                                            <div className="mt-4 bg-white/20 h-2 rounded-full overflow-hidden">
-                                                <div className="bg-white h-full" style={{width: '85%'}}></div>
-                                            </div>
-                                        </Card>
-                                        <Card className="flex items-center gap-4">
-                                            <div className="bg-orange-100 dark:bg-orange-900/30 p-4 rounded-2xl text-orange-600"><i data-lucide="book" className="w-8 h-8"></i></div>
-                                            <div><p className="text-slate-500 text-sm font-bold">المواد النشطة</p><h3 className="text-2xl font-black">{courses.length}</h3></div>
-                                        </Card>
-                                        <Card className="flex items-center gap-4">
-                                            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-4 rounded-2xl text-emerald-600"><i data-lucide="check-circle" className="w-8 h-8"></i></div>
-                                            <div><p className="text-slate-500 text-sm font-bold">مهام مكتملة</p><h3 className="text-2xl font-black">{tasks.filter(t=>t.completed).length}</h3></div>
-                                        </Card>
-                                    </div>
-
-                                    {/* Quick Sections */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                        <div className="space-y-4">
-                                            <h3 className="font-black text-xl flex items-center gap-2"><i data-lucide="clock" className="text-indigo-600"></i> المؤقت</h3>
-                                            {/* Integrated PomodoroTimer Component should go here */}
-                                            <Card className="p-0 overflow-hidden">
-                                                 <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/50">
-                                                    <span className="text-6xl font-mono font-bold tracking-tighter">25:00</span>
-                                                    <div className="flex justify-center gap-4 mt-6">
-                                                        <button className="bg-indigo-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg"><i data-lucide="play" className="fill-current"></i></button>
-                                                        <button className="bg-white dark:bg-dark-bg text-slate-400 w-14 h-14 rounded-full flex items-center justify-center"><i data-lucide="rotate-ccw"></i></button>
-                                                    </div>
-                                                 </div>
-                                            </Card>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <h3 className="font-black text-xl flex items-center gap-2"><i data-lucide="list-todo" className="text-emerald-600"></i> المهام العاجلة</h3>
-                                            <div className="space-y-3">
-                                                {tasks.slice(0, 3).map(t => (
-                                                    <div key={t.id} className="bg-white dark:bg-dark-card p-4 rounded-xl border border-slate-100 dark:border-dark-border flex items-center gap-3">
-                                                        <div className={`w-3 h-3 rounded-full ${t.completed ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
-                                                        <span className={`font-bold text-sm ${t.completed ? 'line-through opacity-50' : ''}`}>{t.title}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'schedule' && <ScheduleView courses={courses} />}
-                            {activeTab === 'courses' && <CoursesView user={user} />}
-                            {activeTab === 'exams' && <ExamsView user={user} />}
-                            {activeTab === 'tasks' && <TasksView user={user} />}
-                        </div>
-                    </main>
-
-                    {/* Mobile Navigation */}
-                    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t border-slate-200 dark:border-dark-border flex justify-around p-3 z-50">
-                        <button onClick={() => setActiveTab('home')} className={`p-2 ${activeTab==='home'?'text-indigo-600':'text-slate-400'}`}><i data-lucide="layout-dashboard"></i></button>
-                        <button onClick={() => setActiveTab('schedule')} className={`p-2 ${activeTab==='schedule'?'text-indigo-600':'text-slate-400'}`}><i data-lucide="calendar"></i></button>
-                        <button onClick={() => setActiveTab('courses')} className={`p-2 ${activeTab==='courses'?'text-indigo-600':'text-slate-400'}`}><i data-lucide="book-open"></i></button>
-                        <button onClick={() => setActiveTab('tasks')} className={`p-2 ${activeTab==='tasks'?'text-indigo-600':'text-slate-400'}`}><i data-lucide="check-square"></i></button>
-                    </nav>
+                    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+                        <header className="md:hidden bg-white dark:bg-dark-card border-b border-slate-200 dark:border-dark-border p-4 flex justify-between items-center z-50 sticky top-0 shadow-sm"><div className="flex items-center gap-2"><i data-lucide="graduation-cap" className="text-indigo-600 dark:text-indigo-400 w-6 h-6"></i><span className="font-bold text-lg text-slate-800 dark:text-white">جامعتي</span></div><div className="flex gap-2"><button onClick={()=>setDarkMode(!darkMode)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={darkMode?"sun":"moon"} className="w-5 h-5 text-slate-600 dark:text-dark-muted"></i></button><button onClick={()=>setShowMobileMenu(!showMobileMenu)} className="p-2 bg-slate-100 dark:bg-dark-bg rounded-lg"><i data-lucide={showMobileMenu?"x":"menu"} className="w-6 h-6 text-slate-600 dark:text-dark-muted"></i></button></div></header>
+                        {showMobileMenu && <div className="md:hidden fixed inset-0 top-[60px] bg-white dark:bg-dark-card z-40 p-4 space-y-2 animate-in slide-in-from-top-2 border-t dark:border-dark-border"><NavItem id="home" icon="layout-grid" label="الرئيسية" /><NavItem id="exams" icon="alarm-clock" label="الامتحانات" /><NavItem id="courses" icon="book-open" label="المواد" /><NavItem id="tasks" icon="list-todo" label="المهام" /><div className="h-px bg-slate-100 dark:bg-dark-border my-4"></div><button onClick={()=>window.fb.signOut(window.fb.auth)} className="w-full flex items-center gap-3 px-4 py-3 text-red-500 font-bold"><i data-lucide="log-out" className="w-5 h-5"></i> خروج</button></div>}
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar pb-20"><div className="max-w-5xl mx-auto">{activeTab==='home'&&<HomeView user={user} setTab={setActiveTab}/>}{activeTab==='exams'&&<ExamsView user={user}/>}{activeTab==='courses'&&<CoursesView user={user}/>}{activeTab==='tasks'&&<TasksView user={user}/>}</div></main>
+                    </div>
                 </div>
             );
         };
 
-        // --- Original Views (Simplified / Kept for context) ---
-        // (إبقاء باقي المكونات كما هي في الكود الأصلي مع تحسين التصميم البصري فقط)
-        const CoursesView = ({ user }) => (
-            <div className="animate-slide-up space-y-6">
-                <div className="flex justify-between items-center"><h2 className="text-2xl font-bold">المواد الدراسية</h2></div>
-                <div className="grid gap-4">
-                     <p className="text-slate-400 italic">يمكنك إضافة وإدارة المواد هنا كما في النسخة السابقة، مع واجهة محسنة.</p>
-                     {/* هنا نضع الكود الأصلي لـ CoursesView مع الحفاظ على Firebase Logic */}
-                </div>
-            </div>
-        );
-
-        const ExamsView = ({ user }) => (<div className="animate-slide-up"><h2>الامتحانات</h2>{/* كود الامتحانات الأصلي */}</div>);
-        const TasksView = ({ user }) => (<div className="animate-slide-up"><h2>المهام</h2>{/* كود المهام الأصلي */}</div>);
-
         const App = () => {
-            const [user, setUser] = useState(null);
-            const [ready, setReady] = useState(false);
-            useEffect(() => {
-                const init = () => { if(window.fb) { setReady(true); window.fb.onAuthStateChanged(window.fb.auth, setUser); } };
-                if(window.fb) init(); else window.addEventListener('firebase-ready', init);
-            }, []);
-            if(!ready) return <Loading />;
-            return user ? <Dashboard user={user} /> : <AuthScreen />;
+            const [user, setUser] = useState(null); const [ready, setReady] = useState(false);
+            useEffect(() => { const init = () => { if(window.fb) { setReady(true); window.fb.onAuthStateChanged(window.fb.auth, setUser); } }; if(window.fb) init(); else window.addEventListener('firebase-ready', init); }, []);
+            if(!ready) return <Loading />; return user ? <Dashboard user={user} /> : <AuthScreen />;
         };
-
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
