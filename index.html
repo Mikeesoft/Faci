@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>جامعتي - النسخة المطورة</title>
+    <title>جامعتي - النسخة الكاملة</title>
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://unpkg.com/lucide@latest"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
     <script>
@@ -21,25 +18,21 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Tajawal', 'sans-serif'] },
-                    colors: {
-                        dark: { bg: '#0f172a', card: '#1e293b', border: '#334155', text: '#f8fafc', muted: '#94a3b8' }
-                    }
+                    colors: { dark: { bg: '#0f172a', card: '#1e293b', border: '#334155', text: '#f8fafc', muted: '#94a3b8' } }
                 }
             }
         }
     </script>
 
     <style>
-        body { font-family: 'Tajawal', sans-serif; transition: background-color 0.3s; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Tajawal', sans-serif; transition: background-color 0.3s; }
         .spinner { width: 30px; height: 30px; border: 3px solid #e2e8f0; border-top: 3px solid #4f46e5; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        input, select { transition: all 0.2s ease-in-out; }
-        input:focus { transform: translateY(-1px); }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text overflow-x-hidden">
+<body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text">
     <div id="root"></div>
 
     <script type="module">
@@ -47,7 +40,6 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // ملاحظة: تأكد من حماية API Key الخاص بك عند رفع الموقع فعلياً
         const firebaseConfig = {
             apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
             authDomain: "myeduplatform-fe0eb.firebaseapp.com",
@@ -68,88 +60,62 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // --- مكوّن التنبيهات الصغير (Toast) ---
+        // --- مكوّن التنبيهات (Toast) ---
         const Toast = ({ message, type, onClose }) => {
-            useEffect(() => {
-                const timer = setTimeout(onClose, 3000);
-                return () => clearTimeout(timer);
-            }, [onClose]);
-
+            useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
             return (
-                <div className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce
-                    ${type === 'error' ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white'}`}>
+                <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-bounce ${type === 'error' ? 'bg-red-600' : 'bg-emerald-600'} text-white`}>
                     <i data-lucide={type === 'error' ? 'alert-circle' : 'check-circle'} className="w-5 h-5"></i>
                     <span className="font-bold text-sm">{message}</span>
                 </div>
             );
         };
 
-        // --- مكوّن الحالة الفارغة (Empty State) ---
-        const EmptyState = ({ icon, title, desc }) => (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center opacity-60">
-                <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-4">
-                    <i data-lucide={icon} className="w-12 h-12 text-slate-400"></i>
-                </div>
-                <h3 className="font-bold text-lg dark:text-white">{title}</h3>
-                <p className="text-sm dark:text-dark-muted max-w-[200px] mt-1">{desc}</p>
+        // --- مكوّن الحالة الفارغة ---
+        const EmptyState = ({ icon, title }) => (
+            <div className="text-center py-10 opacity-50">
+                <i data-lucide={icon} className="w-12 h-12 mx-auto mb-2 text-slate-400"></i>
+                <p className="font-bold">{title}</p>
             </div>
         );
 
-        // --- المكوّن الأساسي للتطبيق ---
+        // --- App Component ---
         const App = () => {
             const [user, setUser] = useState(null);
             const [ready, setReady] = useState(false);
             const [toast, setToast] = useState(null);
 
-            const showToast = (message, type = 'success') => {
-                setToast({ message, type });
-                setTimeout(() => window.lucide.createIcons(), 10);
-            };
+            const showToast = (message, type = 'success') => { setToast({ message, type }); setTimeout(() => window.lucide.createIcons(), 10); };
 
             useEffect(() => {
-                const init = () => {
-                    if (window.fb) {
-                        setReady(true);
-                        window.fb.onAuthStateChanged(window.fb.auth, (u) => setUser(u));
-                    }
-                };
+                const init = () => { if (window.fb) { setReady(true); window.fb.onAuthStateChanged(window.fb.auth, setUser); } };
                 if (window.fb) init(); else window.addEventListener('firebase-ready', init);
             }, []);
 
-            if (!ready) return (
-                <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg">
-                    <div className="spinner mb-4"></div>
-                    <p className="text-slate-500 font-bold animate-pulse">جاري تهيئة النظام...</p>
-                </div>
-            );
+            if (!ready) return <div className="min-h-screen flex items-center justify-center"><div className="spinner"></div></div>;
 
             return (
-                <div className="relative">
+                <div>
                     {user ? <Dashboard user={user} showToast={showToast} /> : <AuthScreen showToast={showToast} />}
                     {toast && <Toast {...toast} onClose={() => setToast(null)} />}
                 </div>
             );
         };
 
-        // --- لوحة التحكم المطورة ---
+        // --- Dashboard ---
         const Dashboard = ({ user, showToast }) => {
             const [activeTab, setActiveTab] = useState('home');
             const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
 
             useEffect(() => {
-                const root = document.documentElement;
-                if (darkMode) root.classList.add('dark'); else root.classList.remove('dark');
+                document.documentElement.classList.toggle('dark', darkMode);
                 localStorage.setItem('theme', darkMode ? 'dark' : 'light');
             }, [darkMode]);
 
-            useEffect(() => {
-                window.lucide.createIcons();
-            }, [activeTab]);
+            useEffect(() => { window.lucide.createIcons(); }, [activeTab]);
 
             const NavItem = ({ id, icon, label }) => (
-                <button onClick={() => setActiveTab(id)} 
-                    className={`flex flex-col md:flex-row items-center gap-2 px-4 py-2 rounded-xl transition-all
-                    ${activeTab === id ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                <button onClick={() => setActiveTab(id)} className={`flex flex-col md:flex-row items-center gap-2 px-4 py-2 rounded-xl transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
                     <i data-lucide={icon} className="w-5 h-5"></i>
                     <span className="text-[10px] md:text-sm font-bold">{label}</span>
                 </button>
@@ -157,25 +123,23 @@
 
             return (
                 <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-dark-bg transition-colors duration-300">
-                    {/* Sidebar Desktop */}
-                    <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-dark-card border-l dark:border-dark-border p-6 sticky top-0 h-screen">
-                        <div className="flex items-center gap-3 mb-10">
-                            <div className="bg-indigo-600 p-2 rounded-lg"><i data-lucide="graduation-cap" className="text-white"></i></div>
-                            <h1 className="font-black text-xl dark:text-white">جامعتي</h1>
-                        </div>
-                        <nav className="flex-1 space-y-3">
+                    <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-dark-card p-6 sticky top-0 h-screen border-l dark:border-dark-border">
+                        <div className="flex items-center gap-3 mb-10"><i data-lucide="graduation-cap" className="text-indigo-600"></i><h1 className="font-black text-xl dark:text-white">جامعتي</h1></div>
+                        <nav className="flex-1 space-y-2">
                             <NavItem id="home" icon="home" label="الرئيسية" />
                             <NavItem id="courses" icon="book" label="المواد" />
                             <NavItem id="exams" icon="calendar" label="الامتحانات" />
-                            <NavItem id="tasks" icon="check-circle" label="المهام" />
+                            <NavItem id="tasks" icon="check-square" label="المهام" />
                         </nav>
-                        <button onClick={() => setDarkMode(!darkMode)} className="mt-4 p-3 rounded-xl bg-slate-100 dark:bg-dark-bg flex items-center justify-center gap-2 font-bold text-xs">
-                            <i data-lucide={darkMode ? "sun" : "moon"} className="w-4 h-4"></i> {darkMode ? "وضع نهاري" : "وضع ليلي"}
+                        <button onClick={() => setDarkMode(!darkMode)} className="p-3 bg-slate-100 dark:bg-dark-bg rounded-xl font-bold text-xs flex justify-center gap-2">
+                            <i data-lucide={darkMode ? "sun" : "moon"} className="w-4 h-4"></i> {darkMode ? "نهاري" : "ليلي"}
+                        </button>
+                        <button onClick={() => window.fb.signOut(window.fb.auth)} className="mt-2 p-3 text-red-500 font-bold text-xs flex justify-center gap-2">
+                            <i data-lucide="log-out" className="w-4 h-4"></i> خروج
                         </button>
                     </aside>
 
-                    {/* Main Content */}
-                    <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 custom-scrollbar overflow-y-auto">
+                    <main className="flex-1 p-4 md:p-8 pb-24 md:pb-8 overflow-y-auto">
                         <div className="max-w-4xl mx-auto">
                             {activeTab === 'home' && <HomeView user={user} setTab={setActiveTab} />}
                             {activeTab === 'courses' && <CoursesView user={user} showToast={showToast} />}
@@ -184,140 +148,192 @@
                         </div>
                     </main>
 
-                    {/* Bottom Nav Mobile */}
-                    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t dark:border-dark-border p-2 flex justify-around items-center z-50">
+                    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t dark:border-dark-border p-2 flex justify-around z-50">
                         <NavItem id="home" icon="home" label="الرئيسية" />
                         <NavItem id="courses" icon="book" label="المواد" />
                         <NavItem id="exams" icon="calendar" label="الامتحانات" />
-                        <NavItem id="tasks" icon="check-circle" label="المهام" />
+                        <NavItem id="tasks" icon="check-square" label="المهام" />
                     </nav>
                 </div>
             );
         };
 
-        // --- مكوّن المواد (Courses) - تم تطوير المنطق ---
-        const CoursesView = ({ user, showToast }) => {
-            const [courses, setCourses] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [form, setForm] = useState({ name: '', credits: 3 });
+        // --- 1. Home View ---
+        const HomeView = ({ user, setTab }) => {
+            const [stats, setStats] = useState({ courses: 0, exams: 0, tasks: 0 });
 
             useEffect(() => {
-                const q = window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid));
-                return window.fb.onSnapshot(q, (s) => {
-                    setCourses(s.docs.map(d => ({ id: d.id, ...d.data() })));
-                    setLoading(false);
-                    setTimeout(() => window.lucide.createIcons(), 50);
-                });
-            }, []);
-
-            const addCourse = async (e) => {
-                e.preventDefault();
-                if (!form.name.trim()) return showToast("يرجى كتابة اسم المادة", "error");
-                try {
-                    await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { 
-                        ...form, uid: user.uid, absences: 0, createdAt: new Date() 
-                    });
-                    setForm({ name: '', credits: 3 });
-                    showToast("تمت إضافة المادة بنجاح");
-                } catch (e) { showToast("فشل الحفظ", "error"); }
-            };
+                const qC = window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid));
+                const qE = window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid));
+                const qT = window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid), window.fb.where("completed", "==", false));
+                
+                const unsubC = window.fb.onSnapshot(qC, s => setStats(p => ({...p, courses: s.size})));
+                const unsubE = window.fb.onSnapshot(qE, s => setStats(p => ({...p, exams: s.size})));
+                const unsubT = window.fb.onSnapshot(qT, s => setStats(p => ({...p, tasks: s.size})));
+                return () => { unsubC(); unsubE(); unsubT(); };
+            }, [user]);
 
             return (
                 <div className="space-y-6">
-                    <h2 className="text-2xl font-bold dark:text-white">المواد الدراسية</h2>
-                    <form onSubmit={addCourse} className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm flex gap-2">
-                        <input className="flex-1 bg-slate-50 dark:bg-dark-bg border-none rounded-xl px-4 py-2 outline-none dark:text-white" 
-                            placeholder="اسم المادة الجديدة..." value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-                        <button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition">إضافة</button>
-                    </form>
-
-                    {loading ? <div className="spinner mx-auto"></div> : (
-                        courses.length === 0 ? <EmptyState icon="book-x" title="لا توجد مواد" desc="ابدأ بإضافة أول مادة دراسية لك لهذا الفصل" /> :
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {courses.map(c => (
-                                <div key={c.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border dark:border-dark-border group">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold text-lg dark:text-white">{c.name}</h3>
-                                        <button onClick={() => window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", c.id))} className="text-slate-300 hover:text-red-500 transition">
-                                            <i data-lucide="trash-2" className="w-4 h-4"></i>
-                                        </button>
-                                    </div>
-                                    <div className="mt-4 flex items-center justify-between bg-slate-50 dark:bg-dark-bg p-3 rounded-xl">
-                                        <span className="text-xs font-bold text-slate-500 uppercase">الغيابات: {c.absences}</span>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: Math.max(0, c.absences - 1) })} className="w-8 h-8 rounded-lg bg-white dark:bg-dark-card shadow-sm flex items-center justify-center">-</button>
-                                            <button onClick={() => window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: c.absences + 1 })} className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center">+</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-8 rounded-[2rem] text-white shadow-xl">
+                        <h2 className="text-3xl font-black mb-2">أهلاً بك يا بطل! 🚀</h2>
+                        <p className="opacity-80">لديك {stats.tasks} مهام معلقة اليوم.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <StatCard icon="book" val={stats.courses} label="مواد" color="blue" onClick={() => setTab('courses')} />
+                        <StatCard icon="calendar" val={stats.exams} label="امتحانات" color="red" onClick={() => setTab('exams')} />
+                        <StatCard icon="check-square" val={stats.tasks} label="مهام" color="orange" onClick={() => setTab('tasks')} />
+                    </div>
                 </div>
             );
         };
 
-        // --- يتم استكمال باقي المكونات (HomeView, ExamsView, TasksView) بنفس النمط ---
-        // (للإيجاز، قمت بتحسين هيكلية التعامل مع البيانات والتنبيهات التي طلبتها)
-        
-        const HomeView = ({ user, setTab }) => (
-            <div className="space-y-6">
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                    <div className="relative z-10">
-                        <h2 className="text-3xl font-black mb-2">أهلاً بك يا بطل! 🚀</h2>
-                        <p className="opacity-80 font-medium">مستعد لتنظيم يومك الدراسي؟</p>
-                    </div>
-                    <i data-lucide="sparkles" className="absolute -bottom-4 -left-4 w-32 h-32 opacity-20 rotate-12"></i>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                    <div onClick={() => setTab('tasks')} className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm cursor-pointer border-b-4 border-orange-500 active:scale-95 transition">
-                        <i data-lucide="list-check" className="text-orange-500 mb-2"></i>
-                        <h3 className="font-bold dark:text-white">المهام اليومية</h3>
-                    </div>
-                    <div onClick={() => setTab('exams')} className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm cursor-pointer border-b-4 border-red-500 active:scale-95 transition">
-                        <i data-lucide="alarm-clock" className="text-red-500 mb-2"></i>
-                        <h3 className="font-bold dark:text-white">جدول الامتحانات</h3>
-                    </div>
-                </div>
+        const StatCard = ({ icon, val, label, color, onClick }) => (
+            <div onClick={onClick} className="bg-white dark:bg-dark-card p-6 rounded-2xl shadow-sm border-b-4 cursor-pointer active:scale-95 transition" style={{ borderColor: color }}>
+                <i data-lucide={icon} style={{ color: color }} className="mb-2"></i>
+                <div className="text-2xl font-black dark:text-white">{val}</div>
+                <div className="text-xs font-bold text-slate-500 uppercase">{label}</div>
             </div>
         );
 
-        // --- شاشة الدخول ---
+        // --- 2. Courses View ---
+        const CoursesView = ({ user, showToast }) => {
+            const [courses, setCourses] = useState([]);
+            const [name, setName] = useState('');
+
+            useEffect(() => {
+                const q = window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid));
+                return window.fb.onSnapshot(q, s => { setCourses(s.docs.map(d => ({id: d.id, ...d.data()}))); setTimeout(() => window.lucide.createIcons(), 50); });
+            }, [user]);
+
+            const add = async (e) => {
+                e.preventDefault(); if (!name.trim()) return;
+                await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { uid: user.uid, name, absences: 0 });
+                setName(''); showToast("تمت الإضافة");
+            };
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-black dark:text-white">المواد</h2>
+                    <form onSubmit={add} className="flex gap-2"><input value={name} onChange={e=>setName(e.target.value)} placeholder="اسم المادة..." className="flex-1 p-3 rounded-xl bg-white dark:bg-dark-card border-none outline-none dark:text-white shadow-sm" /><button className="bg-indigo-600 text-white px-6 rounded-xl font-bold">إضافة</button></form>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {courses.length === 0 ? <EmptyState icon="book-x" title="لا توجد مواد" /> : courses.map(c => (
+                            <div key={c.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm">
+                                <div className="flex justify-between items-center mb-4"><h3 className="font-bold dark:text-white">{c.name}</h3><button onClick={() => window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", c.id))} className="text-red-400"><i data-lucide="trash-2" className="w-4 h-4"></i></button></div>
+                                <div className="flex justify-between items-center bg-slate-50 dark:bg-dark-bg p-2 rounded-xl">
+                                    <span className="text-xs font-bold">الغياب: {c.absences}</span>
+                                    <div className="flex gap-1"><button onClick={() => window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: Math.max(0, c.absences - 1) })} className="w-8 h-8 bg-white dark:bg-dark-card rounded-lg flex items-center justify-center">-</button><button onClick={() => window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: c.absences + 1 })} className="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center">+</button></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 3. Exams View (NOW WORKING) ---
+        const ExamsView = ({ user, showToast }) => {
+            const [exams, setExams] = useState([]);
+            const [form, setForm] = useState({ subject: '', date: '' });
+
+            useEffect(() => {
+                const q = window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid), window.fb.orderBy("date", "asc"));
+                return window.fb.onSnapshot(q, s => { setExams(s.docs.map(d => ({id: d.id, ...d.data()}))); setTimeout(() => window.lucide.createIcons(), 50); });
+            }, [user]);
+
+            const add = async (e) => {
+                e.preventDefault(); if (!form.subject || !form.date) return;
+                await window.fb.addDoc(window.fb.collection(window.fb.db, "exams"), { uid: user.uid, ...form });
+                setForm({ subject: '', date: '' }); showToast("تمت إضافة الامتحان");
+            };
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-black dark:text-white">الامتحانات</h2>
+                    <form onSubmit={add} className="bg-white dark:bg-dark-card p-4 rounded-2xl shadow-sm grid grid-cols-1 md:grid-cols-3 gap-2">
+                        <input value={form.subject} onChange={e=>setForm({...form, subject:e.target.value})} placeholder="المادة" className="p-2 rounded-lg bg-slate-50 dark:bg-dark-bg border-none dark:text-white" />
+                        <input type="date" value={form.date} onChange={e=>setForm({...form, date:e.target.value})} className="p-2 rounded-lg bg-slate-50 dark:bg-dark-bg border-none dark:text-white" />
+                        <button className="bg-red-600 text-white font-bold rounded-lg p-2">حفظ</button>
+                    </form>
+                    <div className="space-y-3">
+                        {exams.length === 0 ? <EmptyState icon="calendar-x" title="لا توجد امتحانات" /> : exams.map(ex => {
+                            const diff = Math.ceil((new Date(ex.date) - new Date()) / (1000 * 60 * 60 * 24));
+                            return (
+                                <div key={ex.id} className="bg-white dark:bg-dark-card p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                                    <div><h3 className="font-bold dark:text-white">{ex.subject}</h3><p className="text-xs text-slate-500">{ex.date}</p></div>
+                                    <div className="flex items-center gap-4">
+                                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${diff < 3 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>متبقي {diff} يوم</div>
+                                        <button onClick={() => window.fb.deleteDoc(window.fb.doc(window.fb.db, "exams", ex.id))} className="text-slate-300"><i data-lucide="x-circle" className="w-4 h-4"></i></button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 4. Tasks View (NOW WORKING) ---
+        const TasksView = ({ user, showToast }) => {
+            const [tasks, setTasks] = useState([]);
+            const [title, setTitle] = useState('');
+
+            useEffect(() => {
+                const q = window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid));
+                return window.fb.onSnapshot(q, s => { setTasks(s.docs.map(d => ({id: d.id, ...d.data()}))); setTimeout(() => window.lucide.createIcons(), 50); });
+            }, [user]);
+
+            const add = async (e) => {
+                e.preventDefault(); if (!title.trim()) return;
+                await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), { uid: user.uid, title, completed: false });
+                setTitle(''); showToast("تمت إضافة المهمة");
+            };
+
+            return (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-black dark:text-white">المهام</h2>
+                    <form onSubmit={add} className="flex gap-2"><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="مهمة جديدة..." className="flex-1 p-3 rounded-xl bg-white dark:bg-dark-card border-none outline-none dark:text-white shadow-sm" /><button className="bg-emerald-600 text-white px-6 rounded-xl font-bold">+</button></form>
+                    <div className="space-y-2">
+                        {tasks.length === 0 ? <EmptyState icon="clipboard-list" title="القائمة فارغة" /> : tasks.map(t => (
+                            <div key={t.id} className={`flex items-center gap-3 p-4 rounded-xl bg-white dark:bg-dark-card shadow-sm transition ${t.completed ? 'opacity-50' : ''}`}>
+                                <button onClick={() => window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", t.id), { completed: !t.completed })} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${t.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}>
+                                    {t.completed && <i data-lucide="check" className="w-4 h-4"></i>}
+                                </button>
+                                <span className={`flex-1 font-bold dark:text-white ${t.completed ? 'line-through' : ''}`}>{t.title}</span>
+                                <button onClick={() => window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", t.id))} className="text-slate-300"><i data-lucide="trash" className="w-4 h-4"></i></button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Auth Screen ---
         const AuthScreen = ({ showToast }) => {
             const [isLogin, setIsLogin] = useState(true);
             const [email, setEmail] = useState('');
             const [pass, setPass] = useState('');
 
-            const handleAuth = async (e) => {
+            const handle = async (e) => {
                 e.preventDefault();
-                const { auth, signInWithEmailAndPassword, createUserWithEmailAndPassword } = window.fb;
                 try {
-                    if (isLogin) await signInWithEmailAndPassword(auth, email, pass);
-                    else await createUserWithEmailAndPassword(auth, email, pass);
-                    showToast("مرحباً بك في عالم الإنجاز");
-                } catch (err) { showToast("خطأ في البيانات، حاول مجدداً", "error"); }
+                    if (isLogin) await window.fb.signInWithEmailAndPassword(window.fb.auth, email, pass);
+                    else await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, pass);
+                    showToast("تم الدخول بنجاح");
+                } catch (err) { showToast("خطأ في البيانات", "error"); }
             };
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-6 bg-slate-100 dark:bg-dark-bg">
-                    <div className="bg-white dark:bg-dark-card w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl">
-                        <div className="text-center mb-8">
-                            <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3 shadow-lg">
-                                <i data-lucide="graduation-cap" className="text-white w-8 h-8"></i>
-                            </div>
-                            <h2 className="text-2xl font-black dark:text-white">{isLogin ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}</h2>
-                        </div>
-                        <form onSubmit={handleAuth} className="space-y-4">
-                            <input type="email" placeholder="البريد الإلكتروني" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-dark-bg border-none outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white" onChange={e=>setEmail(e.target.value)} />
-                            <input type="password" placeholder="كلمة المرور" className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-dark-bg border-none outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white" onChange={e=>setPass(e.target.value)} />
-                            <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-lg hover:bg-indigo-700 transition active:scale-95">
-                                {isLogin ? 'دخول' : 'تسجيل'}
-                            </button>
+                    <div className="bg-white dark:bg-dark-card w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl text-center">
+                        <div className="bg-indigo-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"><i data-lucide="graduation-cap" className="text-white w-8 h-8"></i></div>
+                        <h2 className="text-2xl font-black mb-8 dark:text-white">{isLogin ? 'دخول' : 'تسجيل'}</h2>
+                        <form onSubmit={handle} className="space-y-4">
+                            <input type="email" placeholder="Email" className="w-full p-4 rounded-2xl bg-slate-100 dark:bg-dark-bg dark:text-white border-none outline-none" onChange={e=>setEmail(e.target.value)} />
+                            <input type="password" placeholder="Password" className="w-full p-4 rounded-2xl bg-slate-100 dark:bg-dark-bg dark:text-white border-none outline-none" onChange={e=>setPass(e.target.value)} />
+                            <button className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg">استمرار</button>
                         </form>
-                        <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-6 text-indigo-600 font-bold text-sm">
-                            {isLogin ? 'ليس لديك حساب؟ سجل الآن' : 'لديك حساب؟ سجل دخول'}
-                        </button>
+                        <button onClick={() => setIsLogin(!isLogin)} className="mt-6 text-indigo-600 font-bold text-sm underline">{isLogin ? 'سجل حساب جديد' : 'لديك حساب؟ سجل دخول'}</button>
                     </div>
                 </div>
             );
