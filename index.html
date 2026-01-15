@@ -69,33 +69,47 @@
 <body class="bg-slate-50 text-slate-900 dark:bg-dark-bg dark:text-dark-text selection:bg-indigo-500 selection:text-white overflow-x-hidden">
     <div id="root"></div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (تم التحديث ليعمل في البيئة الحالية) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBmCmcR6OIQ00tQrmaTTnoe4kU6L4fQZ00",
-            authDomain: "myeduplatform-fe0eb.firebaseapp.com",
-            projectId: "myeduplatform-fe0eb",
-            storageBucket: "myeduplatform-fe0eb.firebasestorage.app",
-            messagingSenderId: "773570577444",
-            appId: "1:773570577444:web:c94cc1c8267ecbadd004b1",
-            measurementId: "G-6TFV2M7J1G"
-        };
-
+        // استخدام الإعدادات الصحيحة للبيئة
+        const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        window.fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc };
+        // تصدير الدوال للنافذة
+        window.fb = { 
+            auth, db, appId,
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signInAnonymously, // تمت إضافتها كخيار احتياطي
+            signOut, 
+            onAuthStateChanged, 
+            collection, addDoc, query, where, onSnapshot, doc, deleteDoc, updateDoc 
+        };
+        
+        // إطلاق الحدث ليعرف React أن Firebase جاهز
         window.dispatchEvent(new Event('firebase-ready'));
     </script>
 
     <!-- React Application -->
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- Helper for Firestore Paths (هام جداً لتجنب الأخطاء) ---
+        const getColl = (uid, colName) => {
+            const { db, collection, appId } = window.fb;
+            return collection(db, 'artifacts', appId, 'users', uid, colName);
+        };
+        const getDocRef = (uid, colName, docId) => {
+            const { db, doc, appId } = window.fb;
+            return doc(db, 'artifacts', appId, 'users', uid, colName, docId);
+        };
 
         // --- Components ---
         const Loading = () => <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-dark-bg gap-4"><div className="spinner"></div><p className="text-slate-500 dark:text-dark-muted font-medium animate-pulse">جاري التحميل...</p></div>;
@@ -118,6 +132,12 @@
                 finally { setLoading(false); }
             };
 
+            const handleGuest = async () => {
+                setLoading(true);
+                try { await window.fb.signInAnonymously(window.fb.auth); }
+                catch (err) { setError("فشل الدخول كزائر"); setLoading(false); }
+            };
+
             return (
                 <div className="min-h-screen bg-slate-100 dark:bg-dark-bg flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-dark-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border dark:border-dark-border">
@@ -137,6 +157,9 @@
                                     {loading ? <div className="spinner w-5 h-5 border-2"></div> : (isRegister ? 'تسجيل' : 'دخول')}
                                 </button>
                             </form>
+                            <div className="mt-4 text-center">
+                                <button onClick={handleGuest} className="text-sm text-slate-500 hover:text-indigo-600 underline">الدخول كزائر (بدون تسجيل)</button>
+                            </div>
                             <button onClick={() => {setIsRegister(!isRegister); setError('');}} className="mt-6 w-full text-indigo-600 dark:text-indigo-400 text-sm hover:underline font-medium transition">{isRegister ? 'لديك حساب؟ سجل دخول' : 'ليس لديك حساب؟'}</button>
                         </div>
                     </div>
@@ -190,14 +213,30 @@
             const [newExam, setNewExam] = useState({ subject: '', type: 'Final', date: '', location: '' });
             const [isAdding, setIsAdding] = useState(false);
             useEffect(() => {
-                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), (s) => {
+                // FIXED: Use correct collection path
+                const unsub = window.fb.onSnapshot(window.fb.query(getColl(user.uid, "exams")), (s) => {
                     const data = s.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => new Date(a.date) - new Date(b.date));
                     setExams(data); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
                 });
                 return () => unsub();
             }, [user]);
-            const addExam = async (e) => { e.preventDefault(); if(!newExam.subject || !newExam.date) return; setIsAdding(true); try { await window.fb.addDoc(window.fb.collection(window.fb.db, "exams"), { uid: user.uid, ...newExam, createdAt: new Date() }); setNewExam({ subject: '', type: 'Final', date: '', location: '' }); } catch(err) {} finally { setIsAdding(false); } };
-            const deleteExam = async (id) => { if(confirm("حذف الامتحان؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "exams", id)); };
+            const addExam = async (e) => { 
+                e.preventDefault(); 
+                if(!newExam.subject || !newExam.date) return; 
+                setIsAdding(true); 
+                try { 
+                    // FIXED: Use correct collection path
+                    await window.fb.addDoc(getColl(user.uid, "exams"), { ...newExam, createdAt: new Date().toISOString() }); 
+                    setNewExam({ subject: '', type: 'Final', date: '', location: '' }); 
+                } catch(err) { console.error(err); } 
+                finally { setIsAdding(false); } 
+            };
+            const deleteExam = async (id) => { 
+                if(confirm("حذف الامتحان؟")) {
+                    // FIXED: Use correct doc path
+                    await window.fb.deleteDoc(getDocRef(user.uid, "exams", id)); 
+                }
+            };
             const getTimeLeft = (d) => { const t = Date.parse(d) - Date.parse(new Date()); return { t, days: Math.floor(t / (1000*60*60*24)), hours: Math.floor((t / (1000*60*60)) % 24) }; };
 
             return (
@@ -227,7 +266,7 @@
             );
         };
 
-        // 4. Courses (Complete Features)
+        // 4. Courses
         const CoursesView = ({ user }) => {
             const [courses, setCourses] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -236,7 +275,7 @@
             const gradePoints = { 'A+': 4.0, 'A': 3.75, 'B+': 3.5, 'B': 3.0, 'C+': 2.5, 'C': 2.0, 'D+': 1.5, 'D': 1.0, 'F': 0 };
 
             useEffect(() => {
-                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), (s) => {
+                const unsub = window.fb.onSnapshot(window.fb.query(getColl(user.uid, "courses")), (s) => {
                     setCourses(s.docs.map(doc => ({ id: doc.id, ...doc.data() }))); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
                 });
                 return () => unsub();
@@ -247,9 +286,20 @@
                 return tC===0 ? "0.00" : (tP/tC).toFixed(2);
             }, [courses]);
 
-            const handleAdd = async (e) => { e.preventDefault(); if(!newCourse.name) return; setIsAdding(true); try { await window.fb.addDoc(window.fb.collection(window.fb.db, "courses"), { uid: user.uid, ...newCourse, absences: 0, createdAt: new Date() }); setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' }); } catch (error) {} finally { setIsAdding(false); } };
-            const updateAbsence = async (c, ch) => { const n = (c.absences||0)+ch; if(n<0) return; await window.fb.updateDoc(window.fb.doc(window.fb.db, "courses", c.id), { absences: n }); };
-            const handleDelete = async (id) => { if(confirm("حذف المادة؟")) await window.fb.deleteDoc(window.fb.doc(window.fb.db, "courses", id)); };
+            const handleAdd = async (e) => { 
+                e.preventDefault(); 
+                if(!newCourse.name) return; 
+                setIsAdding(true); 
+                try { await window.fb.addDoc(getColl(user.uid, "courses"), { ...newCourse, absences: 0, createdAt: new Date() }); setNewCourse({ name: '', doctor: '', day: 'الأحد', time: '', maxAbsence: 4, credits: 3, grade: '' }); } catch (error) {} finally { setIsAdding(false); } 
+            };
+            const updateAbsence = async (c, ch) => { 
+                const n = (c.absences||0)+ch; 
+                if(n<0) return; 
+                await window.fb.updateDoc(getDocRef(user.uid, "courses", c.id), { absences: n }); 
+            };
+            const handleDelete = async (id) => { 
+                if(confirm("حذف المادة؟")) await window.fb.deleteDoc(getDocRef(user.uid, "courses", id)); 
+            };
 
             return (
                 <div className="space-y-6 animate-fade-in">
@@ -298,14 +348,20 @@
             const [newTask, setNewTask] = useState('');
             const [loading, setLoading] = useState(true);
             useEffect(() => {
-                const unsub = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid)), s => {
+                const unsub = window.fb.onSnapshot(window.fb.query(getColl(user.uid, "tasks")), s => {
                     setTasks(s.docs.map(doc => ({id:doc.id, ...doc.data()})).sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)); setLoading(false); setTimeout(() => window.lucide.createIcons(), 100);
                 });
                 return () => unsub();
             }, [user]);
-            const add = async (e) => { e.preventDefault(); if(newTask.trim()) { await window.fb.addDoc(window.fb.collection(window.fb.db, "tasks"), {uid:user.uid, title:newTask, completed:false, createdAt:new Date()}); setNewTask(''); } };
-            const toggle = async (t) => await window.fb.updateDoc(window.fb.doc(window.fb.db, "tasks", t.id), {completed: !t.completed});
-            const del = async (id) => await window.fb.deleteDoc(window.fb.doc(window.fb.db, "tasks", id));
+            const add = async (e) => { 
+                e.preventDefault(); 
+                if(newTask.trim()) { 
+                    await window.fb.addDoc(getColl(user.uid, "tasks"), {title:newTask, completed:false, createdAt:new Date()}); 
+                    setNewTask(''); 
+                } 
+            };
+            const toggle = async (t) => await window.fb.updateDoc(getDocRef(user.uid, "tasks", t.id), {completed: !t.completed});
+            const del = async (id) => await window.fb.deleteDoc(getDocRef(user.uid, "tasks", id));
 
             return (
                 <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
@@ -324,9 +380,9 @@
             const [stats, setStats] = useState({ courses: 0, tasks: 0 });
             const [nextExam, setNextExam] = useState(null);
             useEffect(() => {
-                const u1 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "courses"), window.fb.where("uid", "==", user.uid)), s => setStats(p => ({...p, courses: s.size})));
-                const u2 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "tasks"), window.fb.where("uid", "==", user.uid), window.fb.where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
-                const u3 = window.fb.onSnapshot(window.fb.query(window.fb.collection(window.fb.db, "exams"), window.fb.where("uid", "==", user.uid)), s => { const e = s.docs.map(d=>d.data()).filter(x=>new Date(x.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)); setNextExam(e[0]); });
+                const u1 = window.fb.onSnapshot(window.fb.query(getColl(user.uid, "courses")), s => setStats(p => ({...p, courses: s.size})));
+                const u2 = window.fb.onSnapshot(window.fb.query(getColl(user.uid, "tasks"), window.fb.where("completed", "==", false)), s => setStats(p => ({...p, tasks: s.size})));
+                const u3 = window.fb.onSnapshot(window.fb.query(getColl(user.uid, "exams")), s => { const e = s.docs.map(d=>d.data()).filter(x=>new Date(x.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)); setNextExam(e[0]); });
                 return () => { u1(); u2(); u3(); };
             }, [user]);
 
@@ -372,11 +428,30 @@
         };
 
         const App = () => {
-            const [user, setUser] = useState(null); const [ready, setReady] = useState(false);
-            useEffect(() => { const init = () => { if(window.fb) { setReady(true); window.fb.onAuthStateChanged(window.fb.auth, setUser); } }; if(window.fb) init(); else window.addEventListener('firebase-ready', init); }, []);
-            if(!ready) return <Loading />; return user ? <Dashboard user={user} /> : <AuthScreen />;
+            const [user, setUser] = useState(null); 
+            const [ready, setReady] = useState(false);
+            
+            useEffect(() => { 
+                const init = () => { 
+                    if(window.fb) { 
+                        setReady(true); 
+                        window.fb.onAuthStateChanged(window.fb.auth, setUser); 
+                    } 
+                }; 
+                
+                if(window.fb) init(); 
+                else window.addEventListener('firebase-ready', init);
+                
+                // Fallback لتجنب التعليق
+                const tm = setTimeout(() => { if(!ready && window.fb) init(); }, 2000);
+                return () => clearTimeout(tm);
+            }, []);
+            
+            if(!ready) return <Loading />; 
+            return user ? <Dashboard user={user} /> : <AuthScreen />;
         };
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
+
